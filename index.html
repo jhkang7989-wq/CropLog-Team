@@ -1,0 +1,480 @@
+<!--
+  CropLog
+  Copyright (c) 2026 Jihoon Kang. All Rights Reserved.
+  See LICENSE file for details.
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CropLog Team</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<meta name="theme-color" content="#f6f4ee">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CropLog">
+<link rel="apple-touch-icon" href="icon-192.png?v=6">
+<link rel="icon" href="icon-192.png?v=6">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== HOME ===== -->
+  <section id="view-home">
+    <header class="topbar">
+      <h1 class="brand-logo"><img src="logo.png" alt="CropLog"></h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><line x1="20" y1="20" x2="15.5" y2="15.5"/></svg>
+        <input id="searchInput" type="text" placeholder="검색" oninput="renderSearch()">
+      </div>
+
+      <div id="favSection">
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg> 즐겨찾기</div>
+        <div id="favRow" class="pin-row"></div>
+      </div>
+
+      <div id="searchResults" class="hidden">
+        <div class="section-title">검색 결과</div>
+        <div id="searchList"></div>
+      </div>
+
+      <div id="recentSection">
+        <div class="section-title"><svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align:-2px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg> 품목별 목록 <span class="link" onclick="go('alllist')">정렬해서 보기</span></div>
+        <div id="recentList"></div>
+      </div>
+    </main>
+    <button class="fab" onclick="go('newtrial')">+</button>
+  </section>
+
+  <!-- ===== 전체 시교 목록 ===== -->
+  <section id="view-alllist" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1>전체 목록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="tab-row" style="margin-bottom:14px;">
+        <div class="tab active" id="allListSortRecent" onclick="setAllListSort('recent')">최근순</div>
+        <div class="tab" id="allListSortName" onclick="setAllListSort('name')">가나다순</div>
+        <div class="tab" id="allListSortCrop" onclick="setAllListSort('crop')">품목별</div>
+      </div>
+      <div id="allListCount" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>
+      <div id="allListContent"></div>
+    </main>
+  </section>
+
+  <!-- ===== 설정 ===== -->
+  <section id="view-settings" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1>설정</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="section-title" style="margin-top:0;">계정</div>
+      <div class="settings-group" style="margin-bottom:18px;">
+        <div class="settings-row"><span>로그인 중: <b id="settingsUserName"></b></span></div>
+        <div class="settings-row" onclick="openPinChangeModal()"><span>PIN 변경</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="switchUser()"><span>다른 사람으로 전환</span><span class="chev">›</span></div>
+      </div>
+
+      <button class="btn btn-dark btn-compact" style="margin-bottom:22px;" onclick="exportCSV()">
+        <svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13"/><polyline points="7,11 12,16 17,11"/><path d="M4 19h16"/></svg>
+        전체 시교 목록 CSV로 내보내기
+      </button>
+
+      <div class="section-title">일반 설정</div>
+      <div class="toggle-row">
+        <div class="label">저장 · 삭제 · 등록 시 진동 표시</div>
+        <div class="toggle-row-actions">
+          <button class="btn-mini" onclick="rawToast('진동 피드백 테스트입니다')">테스트</button>
+          <div class="switch on" id="feedbackSwitch" onclick="toggleFeedbackSetting()"><div class="knob"></div></div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <div class="label">오늘 방문 예정 일정 알림</div>
+        <div class="switch on" id="scheduleReminderSwitch" onclick="toggleScheduleReminderSetting()"><div class="knob"></div></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row" onclick="go('crops')"><span>품목 Color Tag 설정</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="go('help')"><span>사용법 보기</span><span class="chev">›</span></div>
+        <div class="settings-row" onclick="showNativeDiagnostics()"><span>네이티브 진단 정보</span><span class="chev">›</span></div>
+      </div>
+
+      <div class="app-version" id="appVersionText">CropLog · 로컬 저장 모드</div>
+    </main>
+  </section>
+
+  <!-- ===== 품목 관리 ===== -->
+  <section id="view-crops" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('settings')">‹ 설정</button>
+      <h1>품목 Color Tag 설정</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div id="cropList"></div>
+      <p class="empty" id="cropEmpty">등록된 품목이 없어요. 새 시교 등록 시 자동으로 추가돼요.</p>
+    </main>
+  </section>
+
+  <!-- ===== 사용법 매뉴얼 ===== -->
+  <section id="view-help" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('settings')">‹ 설정</button>
+      <h1>사용법 보기</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="help-card">
+        <div class="help-title">① 시교 등록하기</div>
+        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명·지역·성함을 입력하면 등록돼요. 파종일·정식일·대비종·밭 주소(최대 5개)는 몰라도 등록 자체는 가능해요. 홈 검색은 제품명·SEG·지역·성함까지 다 찾아줘요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">② 사진 등록하기</div>
+        <p>시교 상세의 "타임라인" 탭 맨 위 <b>사진 추가</b>를 누르면 사진첩에서 고르거나 바로 촬영할 수 있어요. 촬영일자는 자동으로 오늘 날짜(한국 시간 기준)가 들어가고, 세로로 찍은 사진의 회전도 자동으로 바로잡혀 저장돼요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">③ 성장 비교 / 품종 비교</div>
+        <p>시교 상세의 "성장비교" 탭에서는 같은 시교의 사진 2~4장을, 하단 "비교" 탭에서는 품목·품종 상관없이 아무 시교끼리나 골라 비교할 수 있어요. "가로로 크게 보기"로 확대·이동해서 볼 수 있고, "이 비교 저장하기"를 누르면 지금 비교 화면을 한 장의 이미지로 합쳐 따로 모아둘 수 있어요 (저장된 항목은 길게 눌러 삭제).</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">④ 사진 마킹하기</div>
+        <p>사진을 탭해서 크게 연 뒤 <b>마킹</b>을 누르면 병해충 발생 부위 등에 원·화살표·선·글자로 표시할 수 있어요. 원·화살표·글자는 그린 뒤에도 손잡이로 위치와 크기를 조절하고 확인 버튼을 눌러야 최종 반영돼요. 마킹한 사진은 원본과 별도로 저장되고, 짧은 코멘트도 남길 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑤ 사진 여러 장 한번에 삭제</div>
+        <p>타임라인에서 사진을 <b>길게 누르면</b> 선택 모드로 바뀌어요. 여러 장 체크한 뒤 하단의 "N개의 사진 삭제하기"를 누르면 한번에 지워져요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑥ 메모 남기기</div>
+        <p>"메모" 탭에서 날짜와 함께 생육상태·특이사항을 기록할 수 있어요. 수정·삭제도 자유롭게 가능해요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑦ 리포트 공유하기</div>
+        <p>처음엔 아무 사진도 선택 안 된 상태로 시작해요. 원하는 사진을 직접 고르거나 전체선택한 뒤, 한 장씩 개별 전송하거나 여러 장을 한 이미지(콜라주)로 합쳐 공유할 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑧ 밭 주소로 바로 길찾기</div>
+        <p>시교 상세에 밭 주소를 등록해두면(최대 5개), 각 주소 옆 복사 버튼으로 다른 앱에 붙여넣거나 지도 아이콘으로 바로 지도앱을 열어 길찾기 할 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑨ 작황조사 캘린더</div>
+        <p>하단 "캘린더" 탭에서 방문 일정을 관리해요. 날짜를 눌러 일정을 등록할 수 있고, 대상은 등록된 시교를 검색해서 고르거나 직접 입력할 수 있어요. 좌우로 스와이프하면 월이 넘어가고, 날짜 칸엔 그날 일정이 최대 3개까지 표시돼요. "캘린더에 추가"를 누르면 구글 캘린더에도 저장해서 그쪽 알림을 받을 수 있고, 설정에서 "오늘 방문 예정 일정 알림"을 켜두면 앱을 열 때 오늘 일정 개수를 알려줘요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑩ 팀 공유 (서버 저장)</div>
+        <p>이 버전은 팀 4명이 같은 서버에 저장해서 함께 보는 방식이에요. 사진·시교 정보는 올리는 즉시 팀원 전체에게 공유되고, 별도 백업이 필요 없어요. 시교 정보 수정·삭제와 본인이 올린 사진 삭제는 PIN 확인이 필요해요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑪ 데이터 내보내기 (CSV)</div>
+        <p>설정의 "전체 시교 목록 CSV로 내보내기"를 누르면 품목·SEG·제품명·지역·성함 등 등록된 모든 시교 정보가 표 파일로 다운로드돼요. 엑셀에서 바로 열어볼 수 있어요.</p>
+      </div>
+      <div class="help-card">
+        <div class="help-title">⑫ 시교별 PDF 리포트</div>
+        <p>타임라인 탭 상단의 "PDF 내보내기"를 누르면 그 시교의 정보·전체 사진·메모가 담긴 PDF 파일이 바로 다운로드돼요. 인쇄 화면을 거치지 않고 곧바로 파일로 저장돼요.</p>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 새 시교 등록 ===== -->
+  <section id="view-newtrial" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="cancelAction(()=>go('home'))">‹ 취소</button>
+      <h1>새 시교 등록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="field">
+        <label>품목 선택</label>
+        <div class="crop-tiles" id="cropTiles"></div>
+      </div>
+
+      <div class="custom-crop-box hidden" id="customCropBox">
+        <div class="field" style="margin-bottom:10px;">
+          <label>품목명</label>
+          <input type="text" id="customCropName" placeholder="예: 딸기">
+        </div>
+        <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;">카드 색상</label>
+        <div class="color-catalog" id="colorCatalog"></div>
+        <div class="color-custom-input">
+          <input type="color" id="customColorPicker" value="#4a7c59">
+          <span>원하는 색이 없다면 직접 선택</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:-6px;">
+        <label>SEG</label>
+        <input type="text" id="ntSeg" placeholder="예: 신미계">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>제품/시교명</label>
+          <input type="text" id="ntName" placeholder="예: 602">
+        </div>
+        <div class="field">
+          <label>지역</label>
+          <input type="text" id="ntRegion" placeholder="예: 인제">
+        </div>
+        <div class="field">
+          <label>성함</label>
+          <input type="text" id="ntGrowerName" placeholder="예: 송재호">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>파종일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="ntSowDate">
+        </div>
+        <div class="field">
+          <label>정식일 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+          <input type="date" id="ntTransplantDate">
+        </div>
+      </div>
+      <div class="field">
+        <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <input type="text" id="ntReferenceVariety" placeholder="예: 칼라탄">
+      </div>
+      <div class="field">
+        <label style="display:flex;align-items:center;">밭 주소 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span> <span class="link" style="margin-left:auto;" onclick="addAddressField('nt')">+ 주소 추가</span></label>
+        <div id="ntAddressList"></div>
+      </div>
+      <button class="btn btn-primary" onclick="createTrial()">등록하고 사진 찍으러 가기</button>
+    </main>
+  </section>
+
+  <!-- ===== 시교 상세 ===== -->
+  <section id="view-detail" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('home')">‹ 홈</button>
+      <h1 id="detailTitle">시교</h1>
+      <div style="display:flex;gap:2px;">
+        <button class="action" onclick="openTrialEditModal()" ><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><line x1="13" y1="6" x2="18" y2="11"/></svg></button>
+        <button class="action" id="favBtn" onclick="toggleFav()"><svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></button>
+        <button class="action" onclick="deleteTrialConfirm()"><svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+      </div>
+    </header>
+    <main>
+      <div id="detailDates" class="detail-dates hidden"></div>
+      <div id="detailAddressList"></div>
+
+      <div class="tab-row" style="margin-bottom:16px;">
+        <div class="tab active" id="detailTabTimeline" onclick="switchDetailTab('timeline')">타임라인</div>
+        <div class="tab" id="detailTabMemo" onclick="switchDetailTab('memo')">메모</div>
+        <div class="tab" id="detailTabCompare" onclick="switchDetailTab('compare')">성장비교</div>
+      </div>
+
+      <div id="detailPanelTimeline">
+        <div class="timeline-action-row">
+          <div class="timeline-action-btn primary" onclick="go('upload', currentTrialId)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+            <span>사진 추가</span>
+          </div>
+          <div class="timeline-action-btn" onclick="go('report', currentTrialId)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/></svg>
+            <span>리포트 공유</span>
+          </div>
+          <div class="timeline-action-btn" onclick="exportTrialPdf()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v3h3"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+            <span>PDF 내보내기</span>
+          </div>
+        </div>
+        <div class="section-title">촬영 타임라인</div>
+        <div id="timelineAll"></div>
+      </div>
+
+      <div id="detailPanelMemo" class="hidden">
+        <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg> 메모 <span class="link" onclick="openNoteModal()">+ 추가</span></div>
+        <div id="noteList"></div>
+      </div>
+
+      <div id="detailPanelCompare" class="hidden">
+        <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;flex:0 0 auto;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M12 9c0-3.3 2.2-5.5 5.5-5.5 0 3.3-2.2 5.5-5.5 5.5Z"/><path d="M12 9c0-3.3-2.2-5.5-5.5-5.5 0 3.3 2.2 5.5 5.5 5.5Z"/></svg> 성장 비교 <span class="link" onclick="resetDetailCompare()">초기화</span></div>
+        <div class="compare-wrap compare-wrap-big">
+          <div class="tab-row" style="margin-bottom:10px;">
+            <div class="tab active" id="cmpCount2" onclick="setDetailCompareCount(2)">2장</div>
+            <div class="tab" id="cmpCount3" onclick="setDetailCompareCount(3)">3장</div>
+            <div class="tab" id="cmpCount4" onclick="setDetailCompareCount(4)">4장</div>
+          </div>
+          <div class="compare-imgs compare-imgs-big" id="cmpSlotsRow"></div>
+          <div class="compare-hint">사진을 탭해서 비교할 사진을 바꿀 수 있어요</div>
+        </div>
+        <button class="btn btn-ghost" onclick="openDetailCompareLandscape()">
+          <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+          가로로 크게 보기
+        </button>
+        <button class="btn btn-dark" style="margin-top:8px;" onclick="saveDetailComparison()">
+          <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h8V4"/></svg>
+          이 비교 저장하기
+        </button>
+        <div id="savedCompareDetail" class="hidden">
+          <div class="section-title" style="margin-top:20px;">저장된 성장비교</div>
+          <div class="saved-cmp-row" id="savedCompareDetailRow"></div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 업로드 ===== -->
+  <section id="view-upload" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="cancelAction(()=>go('detail', currentTrialId))">‹ 취소</button>
+      <h1>사진 등록</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-ghost" onclick="document.getElementById('galleryInput').click()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5" fill="currentColor" stroke="none"/><polyline points="21,16 15,10 6,20"/></svg> 사진첩에서 선택</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('cameraInput').click()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-4px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg> 촬영하기</button>
+      </div>
+      <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handlePhotoSelect(event)">
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotoSelect(event)">
+      <div class="preview-strip" id="previewStrip"></div>
+
+      <div class="field">
+        <label>분류 <span class="autofill-tag">자동 채움</span></label>
+        <div style="font-size:13px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:9px;" id="uploadClassifyInfo"></div>
+      </div>
+      <div class="field">
+        <label>촬영일자</label>
+        <input type="date" id="uploadDate">
+      </div>
+      <button class="btn btn-dark" onclick="savePhotos()">저장</button>
+      <div style="text-align:center;margin-top:12px;">
+        <span class="link" style="font-size:12px;" onclick="cancelAction(()=>go('detail', currentTrialId), '사진 없이 넘어갔어요')">사진 없이 나중에 추가할게요</span>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 리포트 공유 ===== -->
+  <section id="view-report" class="hidden">
+    <header class="topbar">
+      <button class="back" onclick="go('detail', currentTrialId)">‹ 뒤로</button>
+      <h1>리포트 공유</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="section-title">공유할 사진 선택
+        <span class="link" id="reportSelectAllBtn" onclick="toggleSelectAllReportPhotos()">전체선택</span>
+        <span class="link" id="reportSelCount" style="margin-left:0;">0장 선택</span>
+      </div>
+      <div id="reportPhotoPicker"></div>
+
+      <div class="section-title" style="margin-top:18px;">전송 방식</div>
+      <div class="tab-row">
+        <div class="tab active" id="modeIndividual" onclick="setReportMode('individual')">개별 전송</div>
+        <div class="tab" id="modeCollage" onclick="setReportMode('collage')">콜라주 합치기</div>
+      </div>
+
+      <div class="report-card hidden" id="reportPreviewCard"></div>
+      <canvas id="reportCanvas" style="display:none;"></canvas>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-ghost" onclick="downloadReport()">이미지 저장</button>
+        <button class="btn btn-primary" onclick="shareReport()">공유하기</button>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 품종 비교 (교차 비교) ===== -->
+  <section id="view-xcompare" class="hidden">
+    <header class="topbar">
+      <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg> 품종 비교</h1>
+      <button class="action" onclick="resetXCompare()"><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 0 1 13-5"/><polyline points="18,3 18,7.3 13.7,7.3"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5"/><polyline points="6,21 6,16.7 10.3,16.7"/></svg></button>
+    </header>
+    <main>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:-4px 0 16px;">품목·품종에 상관없이 어떤 제품끼리도 자유롭게 골라 나란히 비교할 수 있어요.</p>
+      <div class="tab-row" style="margin-bottom:10px;">
+        <div class="tab active" id="xCmpCount2" onclick="setXCompareCount(2)">2개</div>
+        <div class="tab" id="xCmpCount3" onclick="setXCompareCount(3)">3개</div>
+        <div class="tab" id="xCmpCount4" onclick="setXCompareCount(4)">4개</div>
+      </div>
+      <div class="compare-wrap compare-wrap-big" style="display:flex;gap:10px;" id="xCmpSlotsRow"></div>
+      <button class="btn btn-ghost" onclick="openXCompareLandscape()">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+        가로로 크게 보기
+      </button>
+      <button class="btn btn-dark" style="margin-top:8px;" onclick="saveXComparison()">
+        <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h8V4"/></svg>
+        이 비교 저장하기
+      </button>
+      <div id="savedCompareX" class="hidden">
+        <div class="section-title" style="margin-top:20px;">저장된 품종비교</div>
+        <div class="saved-cmp-row" id="savedCompareXRow"></div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 작황조사 캘린더 ===== -->
+  <section id="view-calendar" class="hidden">
+    <header class="topbar">
+      <h1><svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg> 캘린더</h1>
+      <span style="width:24px;"></span>
+    </header>
+    <main>
+      <div class="cal-header">
+        <button class="action" onclick="calShiftMonth(-1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,4 7,12 15,20"/></svg></button>
+        <div class="cal-title" id="calTitle">2026년 7월</div>
+        <button class="action" onclick="calShiftMonth(1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,4 17,12 9,20"/></svg></button>
+      </div>
+      <div style="text-align:center;margin-bottom:12px;">
+        <span class="link" onclick="calGoToday()" style="margin-left:0;">오늘로 이동</span>
+      </div>
+      <div class="cal-weekdays">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="section-title" style="margin-top:20px;">다가오는 일정</div>
+      <div id="calUpcoming"></div>
+    </main>
+    <button class="fab" onclick="openScheduleModal(todayStr())">+</button>
+  </section>
+
+</div>
+
+<nav class="bottom-tabbar" id="bottomTabbar">
+  <div class="tabbar-item" id="tabHome" onclick="go('home')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>
+    <div>홈</div>
+  </div>
+  <div class="tabbar-item" id="tabXCompare" onclick="go('xcompare')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>
+    <div>비교</div>
+  </div>
+  <div class="tabbar-item" id="tabCalendar" onclick="go('calendar')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+    <div>캘린더</div>
+  </div>
+  <div class="tabbar-item" id="tabSettings" onclick="go('settings')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg>
+    <div>설정</div>
+  </div>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<div class="float-btn hidden" id="floatBack" onclick="floatBackClick()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,4 7,12 15,20"/></svg>
+</div>
+<div class="float-btn hidden" id="floatTop" onclick="scrollActiveMainTop()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18,15 12,9 6,15"/></svg>
+</div>
+
+<script src="js/app-core.js"></script>
+<script src="js/app-home.js"></script>
+<script src="js/app-trial.js"></script>
+<script src="js/app-compare.js"></script>
+<script src="js/app-compare-save.js"></script>
+<script src="js/app-photo-mark.js"></script>
+<script src="js/app-export.js"></script>
+<script src="js/app-auth.js"></script>
+</body>
+</html>
