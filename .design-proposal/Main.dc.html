@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+  <style>
+    :root{
+      --soil:#12151A; --leaf:#16A34A; --cream:#F5F6F7; --paper:#ffffff;
+      --line:#E4E6EA; --ink:#14171A; --muted:#6B7280;
+    }
+    body{margin:0;background:#E8EBEF;color:var(--ink);
+      font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
+    a{color:var(--leaf);} a:hover{color:#15803D;}
+    .board{padding:36px 40px 40px;}
+    .board-title{font-size:22px;font-weight:800;margin:0 0 8px;letter-spacing:-0.01em;}
+    .board-sub{font-size:13px;line-height:1.65;color:#59626D;margin:0 0 24px;max-width:780px;}
+    .cols{display:flex;gap:40px;align-items:flex-start;}
+    .col{display:flex;flex-direction:column;gap:11px;width:390px;}
+    .chip{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;
+      font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:20px;}
+    .chip-now{background:#D9DEE5;color:#4B5560;}
+    .chip-new{background:var(--leaf);color:#fff;}
+
+    /* ── 실제 앱 화면 (style.css 값 그대로) ── */
+    .phone{width:390px;height:648px;background:var(--cream);border:1px solid rgba(0,0,0,0.10);
+      border-radius:26px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:var(--cream);padding:18px 16px 13px;border-bottom:1px solid var(--line);}
+    .logo{display:flex;align-items:center;gap:7px;font-size:19px;font-weight:800;letter-spacing:-0.02em;}
+    .logo em{font-style:normal;color:var(--muted);font-weight:700;}
+    .add{width:34px;height:34px;border-radius:50%;background:var(--leaf);color:#fff;
+      display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .main{flex:1;padding:16px 16px 0;overflow:hidden;}
+    .search{display:flex;align-items:center;gap:8px;background:var(--paper);
+      border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:20px;
+      color:var(--muted);font-size:14px;}
+    .sect{display:flex;align-items:center;gap:6px;font-size:14.5px;font-weight:700;
+      color:var(--soil);margin:22px 0 11px;}
+    .sect:first-of-type{margin-top:0;}
+    .sect svg{color:var(--leaf);flex:0 0 auto;}
+    .sect .link{margin-left:auto;font-size:11px;font-weight:600;color:var(--leaf);}
+
+    /* 즐겨찾기 — 지금: 품목색 카드 */
+    .pin-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:4px 2px 6px;}
+    .pin{border-radius:16px;padding:14px 12px;position:relative;overflow:hidden;
+      border:1px solid rgba(0,0,0,0.08);color:#fff;}
+    .pin .ribbon{position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;
+      background:rgba(255,255,255,0.28);display:flex;align-items:center;justify-content:center;}
+    .pin .crop{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+      opacity:0.85;margin-bottom:20px;}
+    .pin .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;}
+    .pin .seg{font-size:10px;opacity:0.85;}
+
+    /* 즐겨찾기 — 제안: 흰 카드 + 색은 점으로만 */
+    .pin2{background:var(--paper);border:1px solid var(--line);border-radius:16px;
+      padding:13px 12px;position:relative;}
+    .pin2 .head{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
+    .pin2 .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,0.10);}
+    .pin2 .crop{font-size:10.5px;font-weight:700;color:var(--muted);}
+    .pin2 .star{margin-left:auto;color:#F4B740;display:flex;}
+    .pin2 .name{font-size:13.5px;font-weight:800;line-height:1.3;margin-bottom:2px;}
+    .pin2 .seg{font-size:10.5px;color:var(--muted);}
+
+    /* 품목 그룹 */
+    .group{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+      overflow:hidden;margin-bottom:10px;}
+    .ghead{display:flex;align-items:center;gap:9px;padding:13px 14px;}
+    .gdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.10);}
+    .gname{font-weight:700;font-size:13.5px;flex:1;}
+    .gcount{font-size:11px;font-weight:700;color:var(--muted);background:var(--cream);
+      border-radius:4px;padding:2px 8px;}
+    .gchev{color:var(--muted);display:flex;}
+    .gbody{border-top:1px solid var(--line);}
+
+    /* 목록 행 — 지금 */
+    .row{position:relative;display:flex;justify-content:space-between;align-items:center;
+      padding:12px 14px;border-bottom:1px solid var(--line);overflow:hidden;}
+    .row:last-child{border-bottom:none;}
+    .row .bar{position:absolute;left:0;top:0;bottom:0;width:3px;}
+    .row .info{padding-left:9px;}
+    .row .info .name{font-size:14px;font-weight:700;}
+    .row .info .sub{font-size:11px;color:var(--muted);margin-top:2px;}
+    .row .right{display:flex;align-items:center;gap:6px;}
+    .row .when{font-size:10px;color:var(--muted);background:var(--cream);
+      padding:3px 9px;border-radius:4px;white-space:nowrap;}
+    .row .chev{color:var(--muted);}
+
+    /* 목록 행 — 제안: 최근 사진 썸네일 + 사진 수 */
+    .row2{position:relative;display:flex;align-items:center;gap:11px;
+      padding:11px 14px 11px 12px;border-bottom:1px solid var(--line);overflow:hidden;}
+    .row2:last-child{border-bottom:none;}
+    .row2 .bar{position:absolute;left:0;top:0;bottom:0;width:3px;}
+    .row2 .thumb{width:48px;height:48px;border-radius:9px;flex:0 0 auto;margin-left:6px;
+      position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);}
+    .row2 .thumb .n{position:absolute;right:3px;bottom:3px;background:rgba(0,0,0,0.55);
+      color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:9px;}
+    .row2 .info{flex:1;min-width:0;}
+    .row2 .info .name{font-size:14px;font-weight:700;}
+    .row2 .info .sub{font-size:11px;color:var(--muted);margin-top:3px;}
+    .row2 .when{font-size:10.5px;color:var(--muted);white-space:nowrap;}
+    .row2 .chev{color:var(--muted);flex:0 0 auto;}
+    .empty-note{font-size:10.5px;color:var(--muted);padding:2px 2px 0;}
+
+    /* 하단 네비 */
+    .nav{position:absolute;left:14px;right:14px;bottom:14px;background:var(--paper);
+      border:1px solid var(--line);border-radius:20px;display:flex;
+      box-shadow:0 8px 24px -8px rgba(20,23,26,0.18);}
+    .nav .it{flex:1;text-align:center;padding:11px 0 9px;font-size:10px;font-weight:600;
+      color:var(--muted);position:relative;}
+    .nav .it svg{display:block;margin:0 auto 3px;}
+    .nav .it.on{color:var(--ink);font-weight:800;}
+    .nav .it.on svg{color:var(--leaf);}
+    .nav .it.on::before{content:'';position:absolute;top:2px;left:50%;transform:translateX(-50%);
+      width:16px;height:3px;background:var(--leaf);border-radius:2px;}
+  </style>
+</helmet>
+
+<div class="board">
+  <h1 class="board-title">홈 화면 — 목록에서 “어디까지 진행됐는지” 보이게</h1>
+  <p class="board-sub">지금 목록은 글자만 있어서, 어떤 시교에 사진이 얼마나 쌓였는지 들어가 봐야 압니다. 각 줄에 <b>최근 사진 썸네일과 사진 장수</b>를 넣으면 목록만 훑어도 상태가 잡힙니다. 즐겨찾기는 품목색을 카드 전체에 칠하는 대신 <b>점으로만</b> 써서, 개수가 늘어도 화면이 알록달록해지지 않게 했습니다.</p>
+
+  <div class="cols">
+    <!-- ───────── 지금 ───────── -->
+    <div class="col">
+      <span class="chip chip-now">지금</span>
+      <div class="phone">
+        <div class="topbar">
+          <div class="logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11c0-3.6 2.4-6 6-6 0 3.6-2.4 6-6 6Z"/><path d="M12 14c0-3-2-5-5-5 0 3 2 5 5 5Z"/></svg>
+            Crop<em>Log</em>
+          </div>
+          <div class="add">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="main">
+          <div class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><line x1="20" y1="20" x2="15.5" y2="15.5"/></svg>
+            검색
+          </div>
+
+          <div class="sect">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg>
+            즐겨찾기
+          </div>
+          <div class="pin-row">
+            <div class="pin" style="background:#C0453B">
+              <div class="ribbon"><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></div>
+              <div class="crop">고추</div>
+              <div class="name">복합건</div>
+              <div class="seg">영월 · 유봉길</div>
+            </div>
+            <div class="pin" style="background:#E0729A">
+              <div class="ribbon"><svg width="11" height="11" viewBox="0 0 24 24" fill="#fff"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></div>
+              <div class="crop">토마토</div>
+              <div class="name">신미계 602</div>
+              <div class="seg">인제 · 송재호</div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg>
+            품목별 목록
+            <span class="link">정렬해서 보기</span>
+          </div>
+          <div class="group">
+            <div class="ghead">
+              <span class="gdot" style="background:#C0453B"></span>
+              <span class="gname">고추</span>
+              <span class="gcount">3</span>
+              <span class="gchev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="transform:rotate(90deg)"><polyline points="9,4 17,12 9,20"/></svg></span>
+            </div>
+            <div class="gbody">
+              <div class="row">
+                <div class="bar" style="background:#C0453B"></div>
+                <div class="info"><div class="name">복합건</div><div class="sub">영월 · 유봉길</div></div>
+                <div class="right"><span class="when">3일 전</span><span class="chev">›</span></div>
+              </div>
+              <div class="row">
+                <div class="bar" style="background:#C0453B"></div>
+                <div class="info"><div class="name">청양 A-2</div><div class="sub">영양 · 이정훈</div></div>
+                <div class="right"><span class="when">1주 전</span><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="ghead">
+              <span class="gdot" style="background:#E0729A"></span>
+              <span class="gname">토마토</span>
+              <span class="gcount">1</span>
+              <span class="gchev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9,4 17,12 9,20"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav">
+          <div class="it on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>홈</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>비교</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>캘린더</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg>설정</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── 제안 ───────── -->
+    <div class="col">
+      <span class="chip chip-new">제안</span>
+      <div class="phone">
+        <div class="topbar">
+          <div class="logo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V11"/><path d="M12 11c0-3.6 2.4-6 6-6 0 3.6-2.4 6-6 6Z"/><path d="M12 14c0-3-2-5-5-5 0 3 2 5 5 5Z"/></svg>
+            Crop<em>Log</em>
+          </div>
+          <div class="add">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+        </div>
+        <div class="main">
+          <div class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><line x1="20" y1="20" x2="15.5" y2="15.5"/></svg>
+            검색
+          </div>
+
+          <div class="sect">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg>
+            즐겨찾기
+          </div>
+          <div class="pin-row">
+            <div class="pin2">
+              <div class="head">
+                <span class="dot" style="background:#C0453B"></span>
+                <span class="crop">고추</span>
+                <span class="star"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></span>
+              </div>
+              <div class="name">복합건</div>
+              <div class="seg">영월 · 유봉길</div>
+            </div>
+            <div class="pin2">
+              <div class="head">
+                <span class="dot" style="background:#E0729A"></span>
+                <span class="crop">토마토</span>
+                <span class="star"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></span>
+              </div>
+              <div class="name">신미계 602</div>
+              <div class="seg">인제 · 송재호</div>
+            </div>
+          </div>
+
+          <div class="sect">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="15" width="7" height="7" rx="1.5"/><rect x="14" y="15" width="7" height="7" rx="1.5"/></svg>
+            품목별 목록
+            <span class="link">정렬해서 보기</span>
+          </div>
+          <div class="group">
+            <div class="ghead">
+              <span class="gdot" style="background:#C0453B"></span>
+              <span class="gname">고추</span>
+              <span class="gcount">3</span>
+              <span class="gchev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="transform:rotate(90deg)"><polyline points="9,4 17,12 9,20"/></svg></span>
+            </div>
+            <div class="gbody">
+              <div class="row2">
+                <div class="bar" style="background:#C0453B"></div>
+                <div class="thumb" style="background:linear-gradient(135deg,#7E9A5C 0%,#5E7F44 42%,#C1443A 100%)">
+                  <span class="n">24</span>
+                </div>
+                <div class="info">
+                  <div class="name">복합건</div>
+                  <div class="sub">영월 · 유봉길</div>
+                </div>
+                <span class="when">3일 전</span>
+                <span class="chev">›</span>
+              </div>
+              <div class="row2">
+                <div class="bar" style="background:#C0453B"></div>
+                <div class="thumb" style="background:linear-gradient(135deg,#8AA765 0%,#6C8B4A 50%,#B14338 100%)">
+                  <span class="n">9</span>
+                </div>
+                <div class="info">
+                  <div class="name">청양 A-2</div>
+                  <div class="sub">영양 · 이정훈</div>
+                </div>
+                <span class="when">1주 전</span>
+                <span class="chev">›</span>
+              </div>
+            </div>
+          </div>
+          <div class="group">
+            <div class="ghead">
+              <span class="gdot" style="background:#E0729A"></span>
+              <span class="gname">토마토</span>
+              <span class="gcount">1</span>
+              <span class="gchev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9,4 17,12 9,20"/></svg></span>
+            </div>
+          </div>
+          <div class="empty-note">※ 썸네일은 예시 이미지입니다 — 실제로는 마지막에 올린 사진이 들어갑니다.</div>
+        </div>
+
+        <div class="nav">
+          <div class="it on"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/></svg>홈</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></svg>비교</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>캘린더</div>
+          <div class="it"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="11" cy="17" r="2" fill="currentColor" stroke="none"/></svg>설정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

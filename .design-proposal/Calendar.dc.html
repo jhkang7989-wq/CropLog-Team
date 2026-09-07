@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+  <style>
+    :root{
+      --soil:#12151A; --leaf:#16A34A; --cream:#F5F6F7; --paper:#ffffff;
+      --line:#E4E6EA; --ink:#14171A; --muted:#6B7280; --danger:#E23D3D; --sat:#2F6FED;
+    }
+    body{margin:0;background:#E8EBEF;color:var(--ink);
+      font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
+    a{color:var(--leaf);} a:hover{color:#15803D;}
+    .board{padding:36px 40px 40px;}
+    .board-title{font-size:22px;font-weight:800;margin:0 0 8px;letter-spacing:-0.01em;}
+    .board-sub{font-size:13px;line-height:1.65;color:#59626D;margin:0 0 24px;max-width:780px;}
+    .cols{display:flex;gap:40px;align-items:flex-start;}
+    .col{display:flex;flex-direction:column;gap:11px;width:390px;}
+    .chip{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;
+      font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:20px;}
+    .chip-now{background:#D9DEE5;color:#4B5560;}
+    .chip-new{background:var(--leaf);color:#fff;}
+
+    .phone{width:390px;height:648px;background:var(--cream);border:1px solid rgba(0,0,0,0.10);
+      border-radius:26px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:var(--cream);padding:18px 16px 13px;border-bottom:1px solid var(--line);}
+    .topbar h1{margin:0;font-size:17px;font-weight:700;flex:1;text-align:center;
+      display:flex;align-items:center;justify-content:center;gap:6px;}
+    .add{width:34px;height:34px;border-radius:50%;background:var(--leaf);color:#fff;
+      display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .spacer{width:34px;flex:0 0 auto;}
+    .main{flex:1;padding:16px 16px 0;overflow:hidden;}
+
+    .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;color:var(--ink);}
+    .calhead .t{font-size:15px;font-weight:700;color:var(--soil);}
+    .today-link{text-align:center;font-size:11px;color:var(--leaf);font-weight:600;margin-bottom:12px;}
+    .wd{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;
+      color:var(--muted);font-weight:700;margin-bottom:4px;}
+    .wd .sun{color:var(--danger);} .wd .sat{color:var(--sat);}
+    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+
+    /* 지금: 50px 칸 + 8.5px 라벨 */
+    .cell{height:50px;border-radius:6px;background:var(--paper);border:1px solid var(--line);
+      padding:3px;overflow:hidden;}
+    .cell.out{background:transparent;border-color:transparent;color:var(--line);}
+    .cell .num{font-weight:700;text-align:center;font-size:11px;margin-bottom:1px;}
+    .cell .lbl{font-size:8.5px;line-height:1.25;color:var(--soil);background:var(--cream);
+      border-radius:2px;padding:1px 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      margin-bottom:1px;}
+    .cell.today{border:2px solid var(--leaf);}
+    .num.sun{color:var(--danger);} .num.sat{color:var(--sat);}
+
+    /* 제안: 66px 칸 + 점 표시 */
+    .cell2{height:66px;border-radius:10px;background:var(--paper);border:1px solid var(--line);
+      padding:7px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+    .cell2.out{background:transparent;border-color:transparent;}
+    .cell2 .num{font-size:13.5px;font-weight:700;line-height:1;}
+    .cell2.out .num{color:#C9CFD6;}
+    .cell2 .dots{display:flex;gap:3px;}
+    .cell2 .dot{width:5px;height:5px;border-radius:50%;background:var(--leaf);}
+    .cell2 .dot.done{background:#C9CFD6;}
+    .cell2.sel{background:var(--leaf);border-color:var(--leaf);}
+    .cell2.sel .num{color:#fff;}
+    .cell2.sel .dot{background:rgba(255,255,255,0.85);}
+    .cell2.today .num{color:var(--leaf);}
+
+    .daylist{margin-top:16px;}
+    .daylist .h{font-size:13.5px;font-weight:800;color:var(--soil);margin-bottom:9px;
+      display:flex;align-items:baseline;gap:7px;}
+    .daylist .h .c{font-size:11px;font-weight:600;color:var(--muted);}
+    .sched{display:flex;align-items:flex-start;gap:10px;background:var(--paper);
+      border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+    .sched .ck{width:21px;height:21px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;margin-top:1px;}
+    .sched .b{flex:1;min-width:0;}
+    .sched .ti{font-size:13.5px;font-weight:700;}
+    .sched .su{font-size:11.5px;color:var(--muted);margin-top:3px;}
+    .sect{font-size:14.5px;font-weight:700;color:var(--soil);margin:18px 0 10px;}
+    .note-s{font-size:10.5px;color:var(--muted);padding:4px 2px 0;}
+  </style>
+</helmet>
+
+<div class="board">
+  <h1 class="board-title">캘린더 — 밭에서 볼 수 있는 크기로</h1>
+  <p class="board-sub">지금 날짜 칸의 일정 글자는 <b>8.5px</b>입니다. 실내에서도 작은데, 햇빛 아래 밭에서는 거의 안 보입니다. 칸 안에서는 <b>일정이 있다/없다만 점으로</b> 알리고, 자세한 내용은 <b>아래 목록에서 큰 글씨로</b> 보여주는 방식이 캘린더 앱들의 표준입니다(iOS 캘린더, 구글 캘린더). 날짜 숫자도 11px → 13.5px로 키웠습니다.</p>
+
+  <div class="cols">
+    <!-- ───────── 지금 ───────── -->
+    <div class="col">
+      <span class="chip chip-now">지금</span>
+      <div class="phone">
+        <div class="topbar">
+          <span class="spacer"></span>
+          <h1><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>캘린더</h1>
+          <span class="add"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+        </div>
+        <div class="main">
+          <div class="calhead">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15,4 7,12 15,20"/></svg>
+            <span class="t">2026년 9월</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9,4 17,12 9,20"/></svg>
+          </div>
+          <div class="today-link">오늘로 이동</div>
+          <div class="wd"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+          <div class="grid">
+            <div class="cell out"><div class="num">30</div></div>
+            <div class="cell out"><div class="num">31</div></div>
+            <div class="cell"><div class="num">1</div></div>
+            <div class="cell"><div class="num">2</div></div>
+            <div class="cell"><div class="num">3</div><div class="lbl">영월 유봉길</div></div>
+            <div class="cell"><div class="num">4</div></div>
+            <div class="cell"><div class="num sat">5</div></div>
+
+            <div class="cell"><div class="num sun">6</div></div>
+            <div class="cell today"><div class="num">7</div><div class="lbl">영월 복합건</div><div class="lbl">인제 송재호</div></div>
+            <div class="cell"><div class="num">8</div></div>
+            <div class="cell"><div class="num">9</div><div class="lbl">영양 청양</div></div>
+            <div class="cell"><div class="num">10</div></div>
+            <div class="cell"><div class="num">11</div></div>
+            <div class="cell"><div class="num sat">12</div></div>
+
+            <div class="cell"><div class="num sun">13</div></div>
+            <div class="cell"><div class="num">14</div><div class="lbl">논산 설향</div></div>
+            <div class="cell"><div class="num">15</div></div>
+            <div class="cell"><div class="num">16</div></div>
+            <div class="cell"><div class="num">17</div></div>
+            <div class="cell"><div class="num">18</div></div>
+            <div class="cell"><div class="num sat">19</div></div>
+          </div>
+          <div class="sect">다가오는 일정</div>
+          <div class="sched">
+            <span class="ck"></span>
+            <span class="b"><span class="ti" style="font-size:13px;">영월 복합건 작황조사</span><span class="su" style="font-size:11px;">9월 7일 · 유봉길</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── 제안 ───────── -->
+    <div class="col">
+      <span class="chip chip-new">제안</span>
+      <div class="phone">
+        <div class="topbar">
+          <span class="spacer"></span>
+          <h1><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>캘린더</h1>
+          <span class="add"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+        </div>
+        <div class="main">
+          <div class="calhead">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15,4 7,12 15,20"/></svg>
+            <span class="t">2026년 9월</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9,4 17,12 9,20"/></svg>
+          </div>
+          <div class="today-link">오늘로 이동</div>
+          <div class="wd"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
+          <div class="grid">
+            <div class="cell2 out"><div class="num">30</div></div>
+            <div class="cell2 out"><div class="num">31</div></div>
+            <div class="cell2"><div class="num">1</div></div>
+            <div class="cell2"><div class="num">2</div></div>
+            <div class="cell2"><div class="num">3</div><div class="dots"><span class="dot done"></span></div></div>
+            <div class="cell2"><div class="num">4</div></div>
+            <div class="cell2"><div class="num" style="color:#2F6FED">5</div></div>
+
+            <div class="cell2"><div class="num" style="color:#E23D3D">6</div></div>
+            <div class="cell2 sel"><div class="num">7</div><div class="dots"><span class="dot"></span><span class="dot"></span></div></div>
+            <div class="cell2"><div class="num">8</div></div>
+            <div class="cell2"><div class="num">9</div><div class="dots"><span class="dot"></span></div></div>
+            <div class="cell2"><div class="num">10</div></div>
+            <div class="cell2"><div class="num">11</div></div>
+            <div class="cell2"><div class="num" style="color:#2F6FED">12</div></div>
+
+            <div class="cell2"><div class="num" style="color:#E23D3D">13</div></div>
+            <div class="cell2"><div class="num">14</div><div class="dots"><span class="dot"></span></div></div>
+            <div class="cell2"><div class="num">15</div></div>
+            <div class="cell2"><div class="num">16</div></div>
+            <div class="cell2"><div class="num">17</div></div>
+            <div class="cell2"><div class="num">18</div></div>
+            <div class="cell2"><div class="num" style="color:#2F6FED">19</div></div>
+          </div>
+
+          <div class="daylist">
+            <div class="h">9월 7일 (월) <span class="c">일정 2건</span></div>
+            <div class="sched">
+              <span class="ck"></span>
+              <span class="b">
+                <span class="ti">영월 복합건 작황조사</span>
+                <span class="su">고추 · 유봉길</span>
+              </span>
+            </div>
+            <div class="sched">
+              <span class="ck"></span>
+              <span class="b">
+                <span class="ti">인제 신미계 602 방문</span>
+                <span class="su">토마토 · 송재호</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

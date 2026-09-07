@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+  <style>
+    :root{
+      --soil:#12151A; --leaf:#16A34A; --cream:#F5F6F7; --paper:#ffffff;
+      --line:#E4E6EA; --ink:#14171A; --muted:#6B7280;
+    }
+    body{margin:0;background:#E8EBEF;color:var(--ink);
+      font-family:'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
+    a{color:var(--leaf);} a:hover{color:#15803D;}
+    .board{padding:36px 40px 40px;}
+    .board-title{font-size:22px;font-weight:800;margin:0 0 8px;letter-spacing:-0.01em;}
+    .board-sub{font-size:13px;line-height:1.65;color:#59626D;margin:0 0 24px;max-width:780px;}
+    .cols{display:flex;gap:40px;align-items:flex-start;}
+    .col{display:flex;flex-direction:column;gap:11px;width:390px;}
+    .chip{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;
+      font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:20px;}
+    .chip-now{background:#D9DEE5;color:#4B5560;}
+    .chip-new{background:var(--leaf);color:#fff;}
+
+    .phone{width:390px;height:648px;background:var(--cream);border:1px solid rgba(0,0,0,0.10);
+      border-radius:26px;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+    .topbar{background:var(--cream);padding:16px 16px 12px;border-bottom:1px solid var(--line);
+      display:flex;flex-direction:column;gap:2px;}
+    .tb-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .back{font-size:14px;font-weight:600;color:var(--muted);}
+    .acts{display:flex;gap:2px;color:var(--ink);}
+    .acts span{padding:4px 6px;display:inline-flex;}
+    .title{font-size:18px;font-weight:700;text-align:center;line-height:1.35;padding:0 4px;}
+    .main{flex:1;padding:16px 16px 0;overflow:hidden;}
+
+    /* 정보 카드 — 지금 */
+    .info-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;
+      overflow:hidden;margin:-8px 0 14px;}
+    .dates{border-left:3px solid var(--leaf);padding:2px 14px;}
+    .dd{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:12px;
+      font-weight:600;color:var(--muted);}
+    .dd + .dd{border-top:1px solid var(--line);}
+    .dd b{color:var(--ink);font-weight:800;font-size:12.5px;}
+    .addr{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+      border-left:3px solid var(--leaf);border-top:1px solid var(--line);padding:9px 6px 9px 12px;}
+    .addr .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .addr .ico{width:26px;height:26px;border-radius:50%;background:rgba(22,163,74,0.10);
+      color:var(--soil);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+
+    /* 요약 스트립 — 제안 */
+    .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+      background:var(--paper);border:1px solid var(--line);border-radius:14px;
+      overflow:hidden;margin:-8px 0 10px;}
+    .stat{padding:12px 8px;text-align:center;}
+    .stat + .stat{border-left:1px solid var(--line);}
+    .stat .v{font-size:17px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;}
+    .stat .v em{font-style:normal;font-size:11.5px;font-weight:700;color:var(--muted);margin-left:1px;}
+    .stat .k{font-size:10.5px;color:var(--muted);margin-top:4px;font-weight:600;}
+    .meta-line{display:flex;align-items:center;gap:8px;background:var(--paper);
+      border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:14px;
+      font-size:11.5px;color:var(--muted);font-weight:600;}
+    .meta-line b{color:var(--ink);font-weight:700;}
+    .meta-line .more{margin-left:auto;color:var(--leaf);font-weight:700;display:flex;align-items:center;gap:2px;}
+
+    /* 탭 */
+    .tabs{display:flex;border-bottom:1px solid var(--line);margin-bottom:16px;}
+    .tab{flex:1;text-align:center;padding:2px 4px 10px;font-size:12.5px;font-weight:700;
+      color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+    .tab.on{color:var(--ink);border-bottom-color:var(--leaf);}
+
+    /* 액션 툴바 */
+    .acts-row{display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);
+      border-radius:14px;padding:4px;margin-bottom:22px;}
+    .act{flex:1;border-radius:10px;padding:9px 4px;display:flex;align-items:center;
+      justify-content:center;gap:6px;font-size:11px;font-weight:700;}
+    .act svg{width:16px;height:16px;color:var(--leaf);flex:0 0 auto;}
+    .act.pri{background:var(--leaf);color:#fff;}
+    .act.pri svg{color:#fff;}
+
+    .sect{font-size:14.5px;font-weight:700;color:var(--soil);margin:0 0 11px;}
+
+    /* 타임라인 — 지금 */
+    .dhead{font-size:12px;font-weight:700;color:var(--soil);margin-bottom:7px;}
+    .dhead .cnt{font-size:10px;font-weight:400;color:var(--muted);}
+    .pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    .ph{aspect-ratio:1;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.05);}
+
+    /* 타임라인 — 제안: 레일 + 경과일 */
+    .rail{position:relative;padding-left:22px;}
+    .rail::before{content:'';position:absolute;left:5px;top:6px;bottom:0;width:2px;
+      background:var(--line);border-radius:2px;}
+    .knot{position:absolute;left:0;width:12px;height:12px;border-radius:50%;
+      background:var(--paper);border:3px solid var(--leaf);}
+    .grp{position:relative;margin-bottom:16px;}
+    .ghead2{display:flex;align-items:baseline;gap:7px;margin-bottom:8px;}
+    .ghead2 .d{font-size:12.5px;font-weight:800;color:var(--soil);}
+    .ghead2 .age{font-size:10.5px;font-weight:700;color:var(--leaf);
+      background:rgba(22,163,74,0.10);border-radius:4px;padding:2px 7px;}
+    .ghead2 .cnt{font-size:10.5px;color:var(--muted);margin-left:auto;}
+    .note-s{font-size:10.5px;color:var(--muted);padding:2px 2px 0;}
+  </style>
+</helmet>
+
+<div class="board">
+  <h1 class="board-title">시교 상세 — “며칠째, 몇 장”이 한눈에</h1>
+  <p class="board-sub">지금은 파종일·정식일 날짜만 적혀 있어서, 정작 궁금한 <b>“정식한 지 며칠 됐지”</b>는 머릿속으로 세야 합니다. 이미 가지고 있는 날짜에서 계산되는 값이라 데이터를 새로 만들 필요 없이 <b>경과일 · 사진 수 · 마지막 기록</b>을 위에 요약으로 올릴 수 있습니다. 타임라인 날짜 옆에도 <b>정식 +N일</b>을 붙이면 성장 비교할 때 기준이 잡힙니다.</p>
+
+  <div class="cols">
+    <!-- ───────── 지금 ───────── -->
+    <div class="col">
+      <span class="chip chip-now">지금</span>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-row">
+            <span class="back">‹ 홈</span>
+            <span class="acts">
+              <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><line x1="13" y1="6" x2="18" y2="11"/></svg></span>
+              <span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></span>
+              <span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg></span>
+            </span>
+          </div>
+          <div class="title">복합건 영월 유봉길</div>
+        </div>
+        <div class="main">
+          <div class="info-card">
+            <div class="dates">
+              <div class="dd">파종일 <b>2026.03.02</b></div>
+              <div class="dd">정식일 <b>2026.04.18</b></div>
+            </div>
+            <div class="addr">
+              <span class="t">강원 영월군 남면 유봉길 12-3</span>
+              <span class="ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on">타임라인</div>
+            <div class="tab">메모</div>
+            <div class="tab">성장비교</div>
+          </div>
+
+          <div class="acts-row">
+            <div class="act pri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>사진 추가</div>
+            <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/></svg>리포트</div>
+            <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v3h3"/><line x1="9" y1="13" x2="15" y2="13"/></svg>PDF</div>
+          </div>
+
+          <div class="sect">촬영 타임라인</div>
+          <div class="dhead">2026-09-07 <span class="cnt">3장</span></div>
+          <div class="pgrid">
+            <div class="ph" style="background:linear-gradient(135deg,#7E9A5C,#C1443A)"></div>
+            <div class="ph" style="background:linear-gradient(140deg,#88A362,#A83E33)"></div>
+            <div class="ph" style="background:linear-gradient(120deg,#6F8F52,#CE5145)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── 제안 ───────── -->
+    <div class="col">
+      <span class="chip chip-new">제안</span>
+      <div class="phone">
+        <div class="topbar">
+          <div class="tb-row">
+            <span class="back">‹ 홈</span>
+            <span class="acts">
+              <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><line x1="13" y1="6" x2="18" y2="11"/></svg></span>
+              <span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="12,3 14.7,9.3 21.5,9.9 16.3,14.4 17.9,21 12,17.3 6.1,21 7.7,14.4 2.5,9.9 9.3,9.3"/></svg></span>
+              <span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg></span>
+            </span>
+          </div>
+          <div class="title">복합건 영월 유봉길</div>
+        </div>
+        <div class="main">
+          <div class="stats">
+            <div class="stat">
+              <div class="v">142<em>일</em></div>
+              <div class="k">정식 후</div>
+            </div>
+            <div class="stat">
+              <div class="v">24<em>장</em></div>
+              <div class="k">누적 사진</div>
+            </div>
+            <div class="stat">
+              <div class="v">3<em>일 전</em></div>
+              <div class="k">마지막 기록</div>
+            </div>
+          </div>
+          <div class="meta-line">
+            파종 <b>03.02</b> · 정식 <b>04.18</b> · 강원 영월군 남면
+            <span class="more">전체<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9,4 17,12 9,20"/></svg></span>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on">타임라인</div>
+            <div class="tab">메모</div>
+            <div class="tab">성장비교</div>
+          </div>
+
+          <div class="acts-row">
+            <div class="act pri"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>사진 추가</div>
+            <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/></svg>리포트</div>
+            <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v3h3"/><line x1="9" y1="13" x2="15" y2="13"/></svg>PDF</div>
+          </div>
+
+          <div class="sect">촬영 타임라인</div>
+          <div class="rail">
+            <div class="grp">
+              <span class="knot" style="top:2px;"></span>
+              <div class="ghead2">
+                <span class="d">09.07</span>
+                <span class="age">정식 +142일</span>
+                <span class="cnt">3장</span>
+              </div>
+              <div class="pgrid">
+                <div class="ph" style="background:linear-gradient(135deg,#7E9A5C,#C1443A)"></div>
+                <div class="ph" style="background:linear-gradient(140deg,#88A362,#A83E33)"></div>
+                <div class="ph" style="background:linear-gradient(120deg,#6F8F52,#CE5145)"></div>
+              </div>
+            </div>
+            <div class="grp">
+              <span class="knot" style="top:2px;"></span>
+              <div class="ghead2">
+                <span class="d">08.21</span>
+                <span class="age">정식 +125일</span>
+                <span class="cnt">2장</span>
+              </div>
+              <div class="pgrid">
+                <div class="ph" style="background:linear-gradient(135deg,#84A05F,#9C5E3C)"></div>
+                <div class="ph" style="background:linear-gradient(150deg,#7A9455,#8E6B3E)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="note-s">※ 사진은 예시 이미지입니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
