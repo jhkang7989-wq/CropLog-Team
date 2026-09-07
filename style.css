@@ -57,7 +57,14 @@
     position:sticky;top:0;z-index:10;
     border-bottom:1px solid var(--line);
   }
-  header.topbar h1{font-size:18px;margin:0;font-weight:700;letter-spacing:0;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  header.topbar h1{font-size:17px;margin:0;font-weight:700;letter-spacing:0;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 홈 로고만 왼쪽 정렬 유지(오른쪽 + 버튼과 짝) */
+  header.topbar h1.brand-logo{flex:1;text-align:left;}
+  /* 아이콘이 있는 화면(시교 상세)은 제목을 아랫줄에 크게 가운데로 — 긴 농가명도 안 잘리게 */
+  header.topbar.topbar-stack{flex-direction:column;align-items:stretch;gap:2px;padding-bottom:12px;}
+  .topbar-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .topbar-actions{display:flex;gap:2px;flex:0 0 auto;}
+  header.topbar.topbar-stack h1{flex:none;white-space:normal;overflow:visible;font-size:18px;line-height:1.35;padding:0 4px;}
   .brand-logo{display:flex;align-items:center;}
   .brand-logo img{height:38px;width:auto;display:block;}
   header.topbar .back{background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;padding:4px 6px 4px 0;}
@@ -250,8 +257,8 @@
   .timeline-action-btn.primary svg{color:#fff;}
   .btn-row .btn{flex:1;}
 
-  .tab-row{display:flex;gap:18px;margin-bottom:16px;border-bottom:1px solid var(--line);}
-  .tab{text-align:center;padding:0 0 10px;font-size:12.5px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;margin-bottom:-1px;}
+  .tab-row{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--line);}
+  .tab{flex:1;text-align:center;padding:2px 4px 10px;font-size:12.5px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;margin-bottom:-1px;}
   .tab.active{color:var(--ink);border-bottom-color:var(--leaf);}
 
   .compare-wrap{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:12px;margin-bottom:16px;}
