@@ -16,8 +16,13 @@
   img{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto;}
   input, textarea{-webkit-user-select:text;user-select:text;}
   html{scroll-behavior:smooth;}
-  @keyframes viewFadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
-  #app > section:not(.hidden){ animation: viewFadeIn .16s ease-out; }
+  @keyframes viewSlideInRight{ from{opacity:0; transform:translateX(28px);} to{opacity:1; transform:translateX(0);} }
+  @keyframes viewSlideInLeft{ from{opacity:0; transform:translateX(-28px);} to{opacity:1; transform:translateX(0);} }
+  #app > section:not(.hidden).nav-forward{ animation: viewSlideInRight .22s cubic-bezier(.22,.61,.36,1); }
+  #app > section:not(.hidden).nav-back{ animation: viewSlideInLeft .22s cubic-bezier(.22,.61,.36,1); }
+  @media (prefers-reduced-motion: reduce){
+    #app > section.nav-forward, #app > section.nav-back{ animation: none; }
+  }
   @keyframes backdropIn{ from{opacity:0;} to{opacity:1;} }
   @keyframes sheetUp{ from{opacity:0; transform:translateY(24px);} to{opacity:1; transform:translateY(0);} }
   .modal-backdrop{ animation: backdropIn .18s ease; }

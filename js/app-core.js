@@ -295,10 +295,20 @@ function openFieldAddressInMaps(idx){
 }
 const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar','alllist'];
 const topLevelViews = ['home','xcompare','settings','calendar'];
+/* 화면이 서로에 대해 "부모"인 관계 — 뒤로가기 방향(왼쪽에서) 전환 애니메이션을 판단하는 데만 씀 */
+const VIEW_PARENT = {
+  alllist:'home', settings:'home', crops:'settings', help:'settings',
+  detail:'home', newtrial:'home', upload:'detail', report:'detail'
+};
 let navStack = [];
 async function go(view, arg, fromPopstate){
+  const prevView = views.find(v=> !document.getElementById('view-'+v).classList.contains('hidden'));
+  const isBack = fromPopstate || VIEW_PARENT[prevView]===view;
   views.forEach(v=> document.getElementById('view-'+v).classList.add('hidden'));
-  document.getElementById('view-'+view).classList.remove('hidden');
+  const targetSection = document.getElementById('view-'+view);
+  targetSection.classList.remove('nav-forward','nav-back');
+  targetSection.classList.add(isBack ? 'nav-back' : 'nav-forward');
+  targetSection.classList.remove('hidden');
   if(view==='home'){ await renderHome(); }
   if(view==='crops'){ await renderCrops(); }
   if(view==='settings'){

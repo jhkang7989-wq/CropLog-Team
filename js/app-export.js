@@ -34,7 +34,42 @@ function removePending(i){
   pendingRotations.splice(i,1);
   renderPreview();
 }
+/* ---- 백그라운드(Worker) 처리: 화면 스레드를 안 막기 위해, 되면 워커에서 리사이즈/압축 ---- */
+let _photoWorker;
+let _photoWorkerReqId = 0;
+const _photoWorkerPending = new Map();
+function getPhotoWorker(){
+  if(_photoWorker !== undefined) return _photoWorker;
+  if(typeof Worker==='undefined' || typeof OffscreenCanvas==='undefined'){ _photoWorker = null; return null; }
+  try{
+    const w = new Worker('js/photo-worker.js');
+    w.onmessage = (e)=>{
+      const {id, ok, blob, thumbBlob, error} = e.data;
+      const p = _photoWorkerPending.get(id);
+      if(!p) return;
+      _photoWorkerPending.delete(id);
+      if(ok) p.resolve({blob, thumbBlob}); else p.reject(new Error(error));
+    };
+    w.onerror = ()=>{ _photoWorker = null; };
+    _photoWorker = w;
+  }catch(e){ _photoWorker = null; }
+  return _photoWorker;
+}
 async function processUploadFile(file, rotationDeg){
+  const worker = getPhotoWorker();
+  if(worker){
+    try{
+      return await new Promise((resolve, reject)=>{
+        const id = ++_photoWorkerReqId;
+        _photoWorkerPending.set(id, {resolve, reject});
+        worker.postMessage({id, file, rotationDeg});
+      });
+    }catch(e){ /* 워커 실패 시 메인 스레드 방식으로 폴백 */ }
+  }
+  return processUploadFileMainThread(file, rotationDeg);
+}
+/* ---- 폴백: 워커/OffscreenCanvas 미지원 브라우저용, 기존 메인 스레드 처리 ---- */
+async function processUploadFileMainThread(file, rotationDeg){
   rotationDeg = ((rotationDeg||0) % 360 + 360) % 360;
   try{
     const bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
