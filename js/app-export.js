@@ -151,7 +151,7 @@ function drawImageContain(ctx, img, x, y, w, h){
   let dw=w, dh=h, dx=x, dy=y;
   if(ir > br){ dh = w/ir; dy = y + (h-dh)/2; }
   else { dw = h*ir; dx = x + (w-dw)/2; }
-  ctx.fillStyle = '#ECEFE4'; ctx.fillRect(x,y,w,h);
+  ctx.fillStyle = '#F5F6F7'; ctx.fillRect(x,y,w,h);
   ctx.drawImage(img, dx, dy, dw, dh);
 }
 function wrapPdfText(ctx, text, maxWidth){
@@ -203,22 +203,22 @@ async function exportTrialPdf(){
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
     let y = MARGIN;
     if(pageNum===0){
-      ctx.fillStyle = '#1B2420'; ctx.font = `bold ${26*SCALE}px sans-serif`;
+      ctx.fillStyle = '#14171A'; ctx.font = `bold ${26*SCALE}px sans-serif`;
       ctx.fillText(trialTitle(t), MARGIN, y + 24*SCALE);
       y += 38*SCALE;
-      ctx.fillStyle = '#71786A'; ctx.font = `${14*SCALE}px sans-serif`;
+      ctx.fillStyle = '#6B7280'; ctx.font = `${14*SCALE}px sans-serif`;
       ctx.fillText(`${c?c.name:''} · ${t.seg}`, MARGIN, y);
       y += 24*SCALE;
       if(infoLines.length){
         const boxH = infoLines.length*(21*SCALE) + 14*SCALE;
-        ctx.fillStyle = '#ECEFE4'; ctx.fillRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
-        ctx.strokeStyle = '#D7DACB'; ctx.lineWidth = 1; ctx.strokeRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
+        ctx.fillStyle = '#F5F6F7'; ctx.fillRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
+        ctx.strokeStyle = '#E4E6EA'; ctx.lineWidth = 1; ctx.strokeRect(MARGIN, y, PAGE_W-MARGIN*2, boxH);
         let iy = y + 19*SCALE;
-        ctx.fillStyle = '#1B2420'; ctx.font = `${12.5*SCALE}px sans-serif`;
+        ctx.fillStyle = '#14171A'; ctx.font = `${12.5*SCALE}px sans-serif`;
         infoLines.forEach(l=>{ ctx.fillText(l, MARGIN+14*SCALE, iy); iy += 21*SCALE; });
         y += boxH + 18*SCALE;
       }
-      ctx.fillStyle = '#1B2420'; ctx.font = `bold ${15*SCALE}px sans-serif`;
+      ctx.fillStyle = '#14171A'; ctx.font = `bold ${15*SCALE}px sans-serif`;
       ctx.fillText(`촬영 사진 (${loadedPhotos.length}장)`, MARGIN, y);
       y += 16*SCALE;
     }
@@ -230,8 +230,8 @@ async function exportTrialPdf(){
         const ph = loadedPhotos[photoIdx];
         const x = MARGIN + col*(cellW+GAP), yy = gridTop + r*rowH;
         drawImageContain(ctx, ph.img, x, yy, cellW, cellH);
-        ctx.strokeStyle = '#D7DACB'; ctx.lineWidth = 1; ctx.strokeRect(x,yy,cellW,cellH);
-        ctx.fillStyle = '#71786A'; ctx.font = `${10.5*SCALE}px sans-serif`; ctx.textAlign = 'center';
+        ctx.strokeStyle = '#E4E6EA'; ctx.lineWidth = 1; ctx.strokeRect(x,yy,cellW,cellH);
+        ctx.fillStyle = '#6B7280'; ctx.font = `${10.5*SCALE}px sans-serif`; ctx.textAlign = 'center';
         ctx.fillText(ph.date + (ph.isMarked?' · 마킹':''), x+cellW/2, yy+cellH+15*SCALE);
         ctx.textAlign = 'left';
         photoIdx++;
@@ -249,13 +249,13 @@ async function exportTrialPdf(){
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,PAGE_W,PAGE_H);
       let y = MARGIN + 18*SCALE;
-      ctx.fillStyle = '#1B2420'; ctx.font = `bold ${17*SCALE}px sans-serif`;
+      ctx.fillStyle = '#14171A'; ctx.font = `bold ${17*SCALE}px sans-serif`;
       ctx.fillText('메모', MARGIN, y);
       y += 30*SCALE;
       const maxTextW = PAGE_W - MARGIN*2 - 90*SCALE;
       while(noteIdx < notes.length && y < PAGE_H - MARGIN){
         const n = notes[noteIdx];
-        ctx.fillStyle = '#1B2420'; ctx.font = `bold ${12.5*SCALE}px sans-serif`;
+        ctx.fillStyle = '#14171A'; ctx.font = `bold ${12.5*SCALE}px sans-serif`;
         ctx.fillText(n.date, MARGIN, y);
         ctx.font = `${12.5*SCALE}px sans-serif`;
         const lines = wrapPdfText(ctx, n.text||'', maxTextW);
@@ -452,10 +452,10 @@ async function buildReportCanvas(){
   const cellW = Math.floor((W - gap*(cols+1))/cols), cellH = cellW;
   canvas.width = W; canvas.height = headerH + rows*(cellH+Math.round(34*S)) + Math.round(20*S);
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle='#ECEFE4'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='#1F2818'; ctx.font=`bold ${Math.round(28*S)}px sans-serif`;
+  ctx.fillStyle='#F5F6F7'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#12151A'; ctx.font=`bold ${Math.round(28*S)}px sans-serif`;
   ctx.fillText(`${trialTitle(t)} 생육 리포트`, Math.round(20*S), Math.round(38*S));
-  ctx.fillStyle='#71786A'; ctx.font=`${Math.round(16*S)}px sans-serif`;
+  ctx.fillStyle='#6B7280'; ctx.font=`${Math.round(16*S)}px sans-serif`;
   ctx.fillText(`${c.name} · ${t.seg}`, Math.round(20*S), Math.round(66*S));
   if(dateBits){ ctx.fillText(dateBits, Math.round(20*S), Math.round(92*S)); }
 
@@ -466,7 +466,7 @@ async function buildReportCanvas(){
     const y = headerH + row*(cellH+Math.round(34*S));
     const img = await loadImageFromBlob(await fetchPhotoBlob(p.id));
     ctx.drawImage(img, x, y, cellW, cellH);
-    ctx.fillStyle='#71786A'; ctx.font=`${Math.round(14*S)}px sans-serif`;
+    ctx.fillStyle='#6B7280'; ctx.font=`${Math.round(14*S)}px sans-serif`;
     ctx.fillText(p.date, x, y+cellH+Math.round(20*S));
   }
   return canvas;

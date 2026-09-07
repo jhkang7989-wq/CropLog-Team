@@ -6,7 +6,7 @@ function authOverlay(html){
   removeIfExists('authOverlay');
   const el = document.createElement('div');
   el.id = 'authOverlay';
-  el.style.cssText = 'position:fixed;inset:0;z-index:200;background:var(--cream,#ECEFE4);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
+  el.style.cssText = 'position:fixed;inset:0;z-index:200;background:var(--cream,#F5F6F7);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
   el.innerHTML = html;
   document.body.appendChild(el);
   return el;

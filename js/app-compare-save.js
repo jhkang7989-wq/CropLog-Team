@@ -11,10 +11,10 @@ function buildComparisonCanvas({photoInfos, sharedHeader}){
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = headerH + cellH + capH + Math.round(16*S);
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle='#ECEFE4'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#F5F6F7'; ctx.fillRect(0,0,canvas.width,canvas.height);
     let hy = Math.round(36*S);
     sharedHeader.forEach((line,i)=>{
-      ctx.fillStyle = i===0 ? '#1F2818' : '#5C6152';
+      ctx.fillStyle = i===0 ? '#12151A' : '#5B6169';
       ctx.font = i===0 ? `bold ${Math.round(26*S)}px sans-serif` : `bold ${Math.round(17*S)}px sans-serif`;
       ctx.fillText(line, Math.round(20*S), hy);
       hy += Math.round(28*S);
@@ -28,7 +28,7 @@ function buildComparisonCanvas({photoInfos, sharedHeader}){
         img.src = URL.createObjectURL(photoInfos[i].blob);
       });
       let ly = y+cellH+Math.round(22*S);
-      ctx.fillStyle = '#474D3C'; ctx.font=`bold ${Math.round(16*S)}px sans-serif`;
+      ctx.fillStyle = '#494D53'; ctx.font=`bold ${Math.round(16*S)}px sans-serif`;
       photoInfos[i].lines.forEach(line=>{ ctx.fillText(line, x, ly); ly+=Math.round(22*S); });
     }
     canvas.toBlob(b=>resolve(b), 'image/png');
@@ -190,7 +190,7 @@ async function viewSavedComparison(id){
     <div class="scv-wrap" id="scvWrap"><img id="scvImg" src="${comparisonFileUrl(c.id)}"></div>
     <div class="lb-actions">
       <a class="a primary" onclick="shareSavedComparison('${id}')">공유</a>
-      <a class="a" style="background:rgba(168,67,46,0.4);" onclick="deleteSavedComparison('${id}','${c.scope}','${c.trialId||''}')">삭제</a>
+      <a class="a" style="background:rgba(226,61,61,0.4);" onclick="deleteSavedComparison('${id}','${c.scope}','${c.trialId||''}')">삭제</a>
     </div>`;
   document.body.appendChild(overlay);
   const wrap = document.getElementById('scvWrap');
