@@ -218,7 +218,9 @@ function icon(name, size){
     copy: `<svg ${c} ${s}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
     pin: `<svg ${c} ${s}><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>`,
     calendarPlus: `<svg ${c} ${s}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>`,
-    rotate: `<svg ${c} ${s}><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3,4 3,9 8,9"/></svg>`
+    rotate: `<svg ${c} ${s}><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3,4 3,9 8,9"/></svg>`,
+    growers: `<svg ${c} ${s}><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.5a3 3 0 0 1 0 5.4"/><path d="M17.5 19c0-2.4-1-4-2.5-4.6"/></svg>`,
+    phone: `<svg ${c} ${s}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4Z"/></svg>`
   };
   return icons[name] || '';
 }
@@ -297,16 +299,45 @@ function copyFieldAddress(idx){
   }
 }
 function openFieldAddressInMaps(idx){
-  const addr = currentFieldAddresses[idx];
-  if(!addr){ toast('등록된 주소가 없어요'); return; }
-  window.location.href = `geo:0,0?q=${encodeURIComponent(addr)}`;
+  openAddressInNaverMap(currentFieldAddresses[idx]);
 }
-const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar','alllist'];
-const topLevelViews = ['home','xcompare','settings','calendar'];
+/* 네이버 지도로 열기 — 폰에서는 앱 우선, 앱이 없거나 PC면 웹 지도로 넘어감.
+   (예전 geo: 방식은 iOS에서 아무 반응이 없는 경우가 있었음) */
+function openAddressInNaverMap(addr){
+  addr = (addr||'').trim();
+  if(!addr){ toast('등록된 주소가 없어요'); return; }
+  const q = encodeURIComponent(addr);
+  const webUrl = `https://map.naver.com/p/search/${q}`;
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(!isMobile){ window.open(webUrl, '_blank', 'noopener'); return; }
+  // 앱으로 전환되면 페이지가 가려지므로, 그때는 웹으로 다시 안 보냄
+  let switched = false;
+  const onHide = ()=>{ switched = true; };
+  document.addEventListener('visibilitychange', onHide, {once:true});
+  window.location.href = `nmap://search?query=${q}&appname=croplog`;
+  setTimeout(()=>{
+    document.removeEventListener('visibilitychange', onHide);
+    if(!switched && !document.hidden) window.location.href = webUrl;
+  }, 1200);
+}
+function copyTextToClipboard(text, okMsg){
+  text = (text||'').trim();
+  if(!text){ toast('복사할 내용이 없어요'); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text)
+      .then(()=> toast(okMsg || '복사했어요'))
+      .catch(()=> toast('복사에 실패했어요'));
+  } else {
+    toast('이 브라우저는 복사가 지원되지 않아요');
+  }
+}
+const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar','alllist','growers','grower'];
+const topLevelViews = ['home','growers','settings','calendar'];
 /* 화면이 서로에 대해 "부모"인 관계 — 뒤로가기 방향(왼쪽에서) 전환 애니메이션을 판단하는 데만 씀 */
 const VIEW_PARENT = {
   alllist:'home', settings:'home', crops:'settings', help:'settings',
-  detail:'home', newtrial:'home', upload:'detail', report:'detail'
+  detail:'home', newtrial:'home', upload:'detail', report:'detail',
+  grower:'growers', xcompare:'settings'
 };
 let navStack = [];
 async function go(view, arg, fromPopstate){
@@ -333,11 +364,13 @@ async function go(view, arg, fromPopstate){
   if(view==='xcompare'){ renderXCompare(); }
   if(view==='calendar'){ await renderCalendar(); }
   if(view==='alllist'){ await renderAllList('recent'); }
+  if(view==='growers'){ await renderGrowers(); }
+  if(view==='grower'){ await renderGrower(arg); }
 
   const tabbar = document.getElementById('bottomTabbar');
   tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
   document.getElementById('tabHome').classList.toggle('active', view==='home');
-  document.getElementById('tabXCompare').classList.toggle('active', view==='xcompare');
+  document.getElementById('tabGrowers').classList.toggle('active', view==='growers' || view==='grower');
   document.getElementById('tabCalendar').classList.toggle('active', view==='calendar');
   document.getElementById('tabSettings').classList.toggle('active', view==='settings');
 
