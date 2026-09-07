@@ -553,10 +553,10 @@ function openLightbox(photoId){
   if(lightboxIndex<0) return;
   renderLightbox();
 }
+function lbCurrentPhoto(){ return allPhotosCache[lightboxIndex]; }
 function renderLightbox(){
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;
-  const url = getPhotoUrl(p);
   let lb = document.getElementById('lightboxEl');
   if(!lb){
     lb = document.createElement('div');
@@ -564,53 +564,104 @@ function renderLightbox(){
     document.body.appendChild(lb);
   }
   lb.innerHTML = `
-    <div class="lb-top"><span>${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}</span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
-    ${p.isMarked && p.markNote ? `<div class="lb-comment">${icon('pen',15)} ${escapeHtml(p.markNote)}</div>` : ''}
+    <div class="lb-top"><span id="lbCounter"></span><span onclick="closeLightbox()">${icon('close',18)}</span></div>
+    <div class="lb-comment" id="lbComment" style="display:none;"></div>
     <div class="lb-imgwrap" id="lbImgWrap">
-      ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
-      <img id="lbImg" src="${url}">
-      ${lightboxIndex<allPhotosCache.length-1? `<div class="lb-nav lb-next" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>`:''}
+      <div class="lb-scroller" id="lbScroller">
+        ${allPhotosCache.map((ph,i)=>`<div class="lb-page" data-idx="${i}"><img data-full="${getPhotoUrl(ph)}" src="${getPhotoThumbUrl(ph)}"></div>`).join('')}
+      </div>
+      <div class="lb-nav lb-prev" id="lbPrevBtn" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>
+      <div class="lb-nav lb-next" id="lbNextBtn" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>
     </div>
     <div class="lb-actions">
-      <a class="a" onclick="downloadBlob('${p.id}')">저장</a>
-      <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
-      <a class="a" onclick="openMarkingEditor('${p.id}')">마킹</a>
+      <a class="a" onclick="downloadBlob(lbCurrentPhoto().id)">저장</a>
+      <a class="a primary" onclick="shareBlob(lbCurrentPhoto().id)">공유</a>
+      <a class="a" onclick="openMarkingEditor(lbCurrentPhoto().id)">마킹</a>
       <a class="a" onclick="rotateLightboxPhoto()">${icon('rotate',13)} 회전</a>
       <a class="a" style="background:rgba(226,61,61,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
     </div>`;
   attachLightboxGestures();
+  scrollLightboxTo(lightboxIndex, false);
+  updateLightboxChrome();
+}
+function scrollLightboxTo(index, smooth){
+  const scroller = document.getElementById('lbScroller');
+  if(!scroller) return;
+  const page = scroller.children[index];
+  if(!page) return;
+  scroller.scrollTo({ left: page.offsetLeft, behavior: smooth ? 'smooth' : 'auto' });
+}
+function upgradeNearbyLightboxImages(centerIndex){
+  const scroller = document.getElementById('lbScroller');
+  if(!scroller) return;
+  for(let i=Math.max(0,centerIndex-1); i<=Math.min(allPhotosCache.length-1, centerIndex+1); i++){
+    const page = scroller.children[i];
+    const img = page && page.querySelector('img');
+    if(img && img.dataset.full && !img.dataset.upgraded){
+      img.dataset.upgraded = '1';
+      img.src = img.dataset.full;
+    }
+  }
+}
+function updateLightboxChrome(){
+  const p = lbCurrentPhoto();
+  if(!p) return;
+  const counter = document.getElementById('lbCounter');
+  if(counter) counter.textContent = `${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}`;
+  const comment = document.getElementById('lbComment');
+  if(comment){
+    if(p.isMarked && p.markNote){
+      comment.style.display = '';
+      comment.innerHTML = `${icon('pen',15)} ${escapeHtml(p.markNote)}`;
+    } else {
+      comment.style.display = 'none';
+      comment.innerHTML = '';
+    }
+  }
+  const prevBtn = document.getElementById('lbPrevBtn');
+  const nextBtn = document.getElementById('lbNextBtn');
+  if(prevBtn) prevBtn.classList.toggle('hidden', lightboxIndex<=0);
+  if(nextBtn) nextBtn.classList.toggle('hidden', lightboxIndex>=allPhotosCache.length-1);
+  upgradeNearbyLightboxImages(lightboxIndex);
 }
 function attachLightboxGestures(){
   const wrap = document.getElementById('lbImgWrap');
-  const img = document.getElementById('lbImg');
+  const scroller = document.getElementById('lbScroller');
   const lb = document.getElementById('lightboxEl');
-  if(!wrap || !img || !lb) return;
-  img.style.transition = 'none';
+  if(!wrap || !scroller || !lb) return;
   lb.style.transition = 'none';
-  wrap.style.touchAction = 'none';
+  function setZoomLock(on){ scroller.style.touchAction = on ? 'none' : 'pan-x'; }
+  setZoomLock(false);
+
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1;
   let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
-  let mode=null; // 'pinch' | 'pan' | 'swipe' | 'dismiss'
+  let mode=null; // 'pinch' | 'pan' | 'dismiss' | null(탭/네이티브 스와이프)
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
-  function getRenderSize(){
+  let activeImg=null;
+
+  function currentPageImg(){
+    const page = scroller.children[lightboxIndex];
+    return page ? page.querySelector('img') : null;
+  }
+  function getRenderSize(img){
     const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
     const cw = wrap.clientWidth, ch = wrap.clientHeight;
     const ir = iw/ih, cr = cw/ch;
     if(ir > cr) return { rw: cw, rh: cw/ir };
     return { rw: ch*ir, rh: ch };
   }
-  function clampPan(){
-    const {rw, rh} = getRenderSize();
+  function clampPan(img){
+    const {rw, rh} = getRenderSize(img);
     const cw = wrap.clientWidth, ch = wrap.clientHeight;
     const maxX = Math.max(0, (rw*scale - cw)/2);
     const maxY = Math.max(0, (rh*scale - ch)/2);
     panX = Math.min(maxX, Math.max(-maxX, panX));
     panY = Math.min(maxY, Math.max(-maxY, panY));
   }
-  function apply(smooth){
-    clampPan();
+  function apply(img, smooth){
+    clampPan(img);
     img.style.transition = smooth ? 'transform .12s ease' : 'none';
     img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
   }
@@ -623,6 +674,9 @@ function attachLightboxGestures(){
 
   wrap.addEventListener('touchstart', (e)=>{
     if(e.touches.length===2){
+      const img = currentPageImg();
+      if(!img) return;
+      activeImg = img;
       mode='pinch';
       startDist = dist(e.touches);
       startScale = scale;
@@ -630,11 +684,12 @@ function attachLightboxGestures(){
       const t = e.touches[0];
       swipeStartX = t.clientX; swipeStartY = t.clientY;
       if(scale>1){
+        activeImg = currentPageImg();
         mode='pan';
         startTouchX = t.clientX; startTouchY = t.clientY;
         startPanX = panX; startPanY = panY;
       } else {
-        mode='swipe';
+        mode=null; // 확대 안 된 상태의 가로 드래그는 네이티브 스크롤에 맡김
       }
     }
   }, {passive:true});
@@ -643,17 +698,21 @@ function attachLightboxGestures(){
     if(mode==='pinch' && e.touches.length===2){
       e.preventDefault();
       const d = dist(e.touches);
-      if(startDist>0){ scale = Math.min(4, Math.max(1, startScale*(d/startDist))); apply(false); }
+      if(startDist>0 && activeImg){
+        scale = Math.min(4, Math.max(1, startScale*(d/startDist)));
+        setZoomLock(scale>1.02);
+        apply(activeImg, false);
+      }
     } else if(mode==='pan' && e.touches.length===1){
       e.preventDefault();
       const t = e.touches[0];
       panX = startPanX + (t.clientX-startTouchX);
       panY = startPanY + (t.clientY-startTouchY);
-      apply(false);
-    } else if(mode==='swipe' && e.touches.length===1){
+      if(activeImg) apply(activeImg, false);
+    } else if(mode===null && e.touches.length===1 && scale<=1){
       const t = e.touches[0];
       const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
-      if(mode==='swipe' && (Math.abs(dy) > 10) && Math.abs(dy) > Math.abs(dx)*1.2){
+      if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)*1.2){
         mode = 'dismiss';
       }
       if(mode==='dismiss' && dy>0){
@@ -678,33 +737,50 @@ function attachLightboxGestures(){
         applyDismiss(0, true);
       }
     } else if(mode==='pinch' || mode==='pan'){
-      if(scale<=1.02){
+      if(scale<=1.02 && activeImg){
         scale = 1; panX = 0; panY = 0;
-        apply(true);
+        setZoomLock(false);
+        apply(activeImg, true);
       }
-    } else if(mode==='swipe'){
+    } else if(mode===null){
       const t = e.changedTouches[0];
       const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
-      if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.2){
-        if(dx<0) lightboxNav(1); else lightboxNav(-1);
-      } else {
+      if(Math.abs(dx) < 8 && Math.abs(dy) < 8){
         const now = Date.now();
         if(now-lastTap<300){
-          scale = scale>1 ? 1 : 2.2;
-          panX=0; panY=0;
-          apply(true);
+          const img = currentPageImg();
+          if(img){
+            scale = scale>1 ? 1 : 2.2;
+            panX=0; panY=0;
+            setZoomLock(scale>1);
+            apply(img, true);
+          }
         }
         lastTap = now;
       }
     }
-    if(e.touches.length===0) mode=null;
+    if(e.touches.length===0){ mode=null; activeImg=null; }
   });
+
+  let scrollSettleTimer=null;
+  scroller.addEventListener('scroll', ()=>{
+    clearTimeout(scrollSettleTimer);
+    scrollSettleTimer = setTimeout(()=>{
+      const w = scroller.clientWidth || 1;
+      const idx = Math.min(allPhotosCache.length-1, Math.max(0, Math.round(scroller.scrollLeft / w)));
+      if(idx !== lightboxIndex){
+        lightboxIndex = idx;
+        updateLightboxChrome();
+      }
+    }, 120);
+  }, {passive:true});
 }
 function lightboxNav(dir){
   const newIdx = lightboxIndex + dir;
   if(newIdx<0 || newIdx>=allPhotosCache.length) return;
   lightboxIndex = newIdx;
-  renderLightbox();
+  scrollLightboxTo(lightboxIndex, true);
+  updateLightboxChrome();
 }
 function closeLightbox(){ removeIfExists('lightboxEl'); }
 function rotateImageBlob(blob, degrees){
