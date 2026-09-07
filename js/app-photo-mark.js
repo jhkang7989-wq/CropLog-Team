@@ -557,8 +557,6 @@ function renderLightbox(){
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;
   const url = getPhotoUrl(p);
-  const prevP = allPhotosCache[lightboxIndex-1];
-  const nextP = allPhotosCache[lightboxIndex+1];
   let lb = document.getElementById('lightboxEl');
   if(!lb){
     lb = document.createElement('div');
@@ -570,11 +568,7 @@ function renderLightbox(){
     ${p.isMarked && p.markNote ? `<div class="lb-comment">${icon('pen',15)} ${escapeHtml(p.markNote)}</div>` : ''}
     <div class="lb-imgwrap" id="lbImgWrap">
       ${lightboxIndex>0? `<div class="lb-nav lb-prev" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>`:''}
-      <div class="lb-track" id="lbTrack">
-        <div class="lb-slide">${prevP ? `<img src="${getPhotoThumbUrl(prevP)}">` : ''}</div>
-        <div class="lb-slide"><img id="lbImg" src="${url}"></div>
-        <div class="lb-slide">${nextP ? `<img src="${getPhotoThumbUrl(nextP)}">` : ''}</div>
-      </div>
+      <img id="lbImg" src="${url}">
       ${lightboxIndex<allPhotosCache.length-1? `<div class="lb-nav lb-next" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>`:''}
     </div>
     <div class="lb-actions">
@@ -586,32 +580,20 @@ function renderLightbox(){
     </div>`;
   attachLightboxGestures();
 }
-const LB_SLIDE_MS = 280;
 function attachLightboxGestures(){
   const wrap = document.getElementById('lbImgWrap');
-  const track = document.getElementById('lbTrack');
   const img = document.getElementById('lbImg');
   const lb = document.getElementById('lightboxEl');
-  if(!wrap || !track || !img || !lb) return;
+  if(!wrap || !img || !lb) return;
   img.style.transition = 'none';
-  track.style.transition = 'none';
   lb.style.transition = 'none';
   wrap.style.touchAction = 'none';
-  const hasPrev = lightboxIndex > 0;
-  const hasNext = lightboxIndex < allPhotosCache.length - 1;
   let scale=1, panX=0, panY=0;
   let startDist=0, startScale=1;
   let startPanX=0, startPanY=0, startTouchX=0, startTouchY=0;
   let mode=null; // 'pinch' | 'pan' | 'swipe' | 'dismiss'
   let swipeStartX=0, swipeStartY=0;
-  let trackW = wrap.clientWidth;
-  let navigating = false; // 슬라이드 전환 애니메이션 중엔 새 스와이프를 안 받음
   let lastTap=0;
-  // 트랙을 가운데(현재 사진) 기준으로 px만큼 밀기. px<0이면 다음 사진이, px>0이면 이전 사진이 딸려 나옴.
-  function setTrackX(px, smooth){
-    track.style.transition = smooth ? `transform ${LB_SLIDE_MS}ms cubic-bezier(.22,.61,.36,1)` : 'none';
-    track.style.transform = `translateX(${-trackW + px}px)`;
-  }
   function getRenderSize(){
     const iw = img.naturalWidth || 1, ih = img.naturalHeight || 1;
     const cw = wrap.clientWidth, ch = wrap.clientHeight;
@@ -640,7 +622,6 @@ function attachLightboxGestures(){
   }
 
   wrap.addEventListener('touchstart', (e)=>{
-    if(navigating) return;
     if(e.touches.length===2){
       mode='pinch';
       startDist = dist(e.touches);
@@ -648,7 +629,6 @@ function attachLightboxGestures(){
     } else if(e.touches.length===1){
       const t = e.touches[0];
       swipeStartX = t.clientX; swipeStartY = t.clientY;
-      trackW = wrap.clientWidth;
       if(scale>1){
         mode='pan';
         startTouchX = t.clientX; startTouchY = t.clientY;
@@ -675,12 +655,6 @@ function attachLightboxGestures(){
       const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
       if(mode==='swipe' && (Math.abs(dy) > 10) && Math.abs(dy) > Math.abs(dx)*1.2){
         mode = 'dismiss';
-      } else {
-        e.preventDefault();
-        // 사진첩 앱처럼 손가락을 그대로 따라가되, 더 넘길 사진이 없는 끝에서는 살짝만 끌려오게(고무줄 저항)
-        let followDx = dx;
-        if((dx>0 && !hasPrev) || (dx<0 && !hasNext)) followDx = dx*0.35;
-        setTrackX(followDx, false);
       }
       if(mode==='dismiss' && dy>0){
         e.preventDefault();
@@ -711,19 +685,11 @@ function attachLightboxGestures(){
     } else if(mode==='swipe'){
       const t = e.changedTouches[0];
       const dx = t.clientX-swipeStartX, dy = t.clientY-swipeStartY;
-      const THRESH = Math.min(120, trackW*0.22);
-      if(dx < -THRESH && hasNext){
-        navigating = true;
-        setTrackX(-trackW, true);
-        setTimeout(()=>{ lightboxIndex++; renderLightbox(); }, LB_SLIDE_MS);
-      } else if(dx > THRESH && hasPrev){
-        navigating = true;
-        setTrackX(trackW, true);
-        setTimeout(()=>{ lightboxIndex--; renderLightbox(); }, LB_SLIDE_MS);
+      if(Math.abs(dx)>45 && Math.abs(dx)>Math.abs(dy)*1.2){
+        if(dx<0) lightboxNav(1); else lightboxNav(-1);
       } else {
-        setTrackX(0, true); // 못 넘겼으면 제자리로 스프링백
         const now = Date.now();
-        if(Math.abs(dx)<8 && Math.abs(dy)<8 && now-lastTap<300){
+        if(now-lastTap<300){
           scale = scale>1 ? 1 : 2.2;
           panX=0; panY=0;
           apply(true);
