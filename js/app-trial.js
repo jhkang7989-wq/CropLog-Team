@@ -198,6 +198,28 @@ async function deleteTrialConfirm(){
   toast('삭제했어요');
   go('home');
 }
+/* 타임라인에서 잘 안 쓰는 동작(리포트 공유·PDF)은 헤더 ⋯ 메뉴로 옮겨둠 */
+function openTrialMoreMenu(){
+  removeIfExists('trialMoreMenu');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.id = 'trialMoreMenu';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>더보기</h3>
+      <div class="settings-group">
+        <div class="settings-row" onclick="closeModal('trialMoreMenu'); go('report', currentTrialId);">
+          <span>리포트 공유</span><span class="chev">›</span>
+        </div>
+        <div class="settings-row" onclick="closeModal('trialMoreMenu'); exportTrialPdf();">
+          <span>PDF 내보내기</span><span class="chev">›</span>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="closeModal('trialMoreMenu')">닫기</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+}
 let allPhotosCache = [];
 let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
 function switchDetailTab(tab){

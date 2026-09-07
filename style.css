@@ -281,16 +281,13 @@
   .btn-danger{background:#F2E3DE;color:var(--danger);}
   .btn-compact{padding:9px 13px;font-size:12.5px;border-radius:7px;}
   .btn-row{display:flex;gap:8px;}
-  .timeline-action-row{
-    display:flex;gap:4px;margin-bottom:22px;background:var(--paper);
-    border:1px solid var(--line);border-radius:14px;padding:4px;
-  }
+  .timeline-action-row{display:flex;gap:8px;margin-bottom:20px;}
   .timeline-action-btn{
-    flex:1;background:none;border:none;border-radius:10px;
-    padding:9px 4px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;
-    cursor:pointer;font-size:11px;font-weight:700;color:var(--ink);text-align:center;line-height:1.2;
+    flex:1;background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:13px 8px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:7px;
+    cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);text-align:center;line-height:1.2;
   }
-  .timeline-action-btn svg{color:var(--leaf);flex:0 0 auto;width:16px;height:16px;}
+  .timeline-action-btn svg{color:var(--leaf);flex:0 0 auto;width:18px;height:18px;}
   .timeline-action-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .timeline-action-btn.primary{background:var(--leaf);color:#fff;}
   .timeline-action-btn.primary svg{color:#fff;}
