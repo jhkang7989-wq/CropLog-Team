@@ -169,6 +169,14 @@ function todayStr(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+// 'YYYY-MM-DD' 두 개 사이의 일수. 파종/정식 후 며칠인지 세는 데 씀.
+function daysBetweenDates(fromStr, toStr){
+  if(!fromStr || !toStr) return null;
+  const from = Date.parse(fromStr + 'T00:00:00');
+  const to = Date.parse(toStr + 'T00:00:00');
+  if(isNaN(from) || isNaN(to)) return null;
+  return Math.round((to - from) / 86400000);
+}
 function timeAgo(ts){
   const diffMs = Date.now()-ts;
   const day = Math.floor(diffMs/86400000);

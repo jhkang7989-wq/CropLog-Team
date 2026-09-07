@@ -22,10 +22,12 @@ async function renderHome(){
   } else {
     favRow.innerHTML = favTrials.map(t=>{
       const c = cropMap[t.cropId] || {name:'?',color:'#999'};
-      const fg = textColorFor(c.color);
-      return `<div class="pin-card" style="background:${c.color};color:${fg}" onclick="go('detail','${t.id}')">
-        <div class="ribbon">${icon('starFilled',12)}</div>
-        <div class="crop-tag" style="color:${fg}">${c.name}</div>
+      return `<div class="pin-card" onclick="go('detail','${t.id}')">
+        <div class="pin-head">
+          <span class="crop-dot" style="background:${c.color}"></span>
+          <span class="crop-tag">${c.name}</span>
+          <span class="ribbon">${icon('starFilled',12)}</span>
+        </div>
         <div class="name">${trialTitle(t)}</div>
         <div class="seg">${t.seg}</div>
       </div>`;

@@ -142,17 +142,16 @@
   .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:6px;will-change:transform;}
   .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
   .pin-card{
-    border-radius:16px;padding:14px 12px;cursor:pointer;
+    background:var(--paper);border:1px solid var(--line);
+    border-radius:13px;padding:10px 11px;cursor:pointer;
     position:relative;overflow:hidden;contain:content;
-    border:1px solid rgba(0,0,0,0.08);
   }
-  .pin-card .ribbon{
-    position:absolute;top:8px;right:8px;font-size:11px;background:rgba(255,255,255,0.28);
-    width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  }
-  .pin-card .crop-tag{font-size:9.5px;opacity:0.85;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:20px;}
-  .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;}
-  .pin-card .seg{font-size:10px;opacity:0.85;}
+  .pin-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+  .pin-head .crop-dot{margin-right:0;}
+  .pin-card .ribbon{margin-left:auto;color:#F4B740;display:flex;flex:0 0 auto;}
+  .pin-card .crop-tag{font-size:10px;font-weight:700;color:var(--muted);}
+  .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;color:var(--ink);}
+  .pin-card .seg{font-size:10.5px;color:var(--muted);}
 
   /* ---- 최근 등록: 품목별 원장(ledger) 그룹 ---- */
   .home-crop-group{margin-bottom:10px;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
@@ -332,8 +331,9 @@
   .mark-color-custom-row input[type=color]{width:36px;height:36px;border:none;border-radius:6px;padding:0;background:none;cursor:pointer;}
 
   .date-group{margin-bottom:16px;}
-  .date-head{font-size:12px;font-weight:700;color:var(--soil);margin-bottom:7px;}
-  .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);}
+  .date-head{display:flex;align-items:baseline;gap:7px;font-size:12px;font-weight:700;color:var(--soil);margin-bottom:7px;}
+  .date-head .age{font-size:10.5px;font-weight:700;color:var(--leaf);background:rgba(22,163,74,0.10);border-radius:4px;padding:2px 7px;}
+  .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);margin-left:auto;}
   .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .photo-thumb{aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;contain:content;}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
@@ -402,7 +402,15 @@
   .settings-row:last-child{border-bottom:none;}
   .settings-row .chev{color:var(--muted);}
   .app-version{text-align:center;color:var(--muted);font-size:11px;margin-top:20px;}
-  .detail-info-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin:-8px 0 14px;overflow:hidden;}
+  .detail-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--paper);
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:-8px 0 10px;}
+  .detail-stat{padding:12px 8px;text-align:center;}
+  .detail-stat+.detail-stat{border-left:1px solid var(--line);}
+  .detail-stat .v{font-size:17px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;}
+  .detail-stat .v em{font-style:normal;font-size:11.5px;font-weight:700;color:var(--muted);margin-left:1px;}
+  .detail-stat .k{font-size:10.5px;color:var(--muted);margin-top:4px;font-weight:600;}
+  .detail-info-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin:0 0 14px;overflow:hidden;}
+  .detail-stats.hidden+.detail-info-card{margin-top:-8px;}
   .detail-info-card:has(#detailDates.hidden):has(#detailAddressList:empty){display:none;}
   .detail-dates{font-size:12.5px;color:var(--ink);border-left:3px solid var(--leaf);padding:2px 14px;}
   .dd-row{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}

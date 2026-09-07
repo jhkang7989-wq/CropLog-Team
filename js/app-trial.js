@@ -243,6 +243,27 @@ async function renderDetail(trialId){
   const photos = (await idbGetAllByIndex('photos','trialId',trialId)).sort((a,b)=>a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
   allPhotosCache = photos;
 
+  // 상단 요약: 정식(없으면 파종) 후 며칠 · 누적 사진 · 마지막 기록
+  const ageBase = t.transplantDate || t.sowDate;
+  const ageLabel = t.transplantDate ? '정식 후' : '파종 후';
+  const stats = [];
+  const grownDays = daysBetweenDates(ageBase, todayStr());
+  if(grownDays !== null && grownDays >= 0) stats.push({v:String(grownDays), unit:'일', k:ageLabel});
+  stats.push({v:String(photos.length), unit:'장', k:'누적 사진'});
+  const lastPhotoDate = photos.length ? photos[photos.length-1].date : null;
+  const sinceLast = daysBetweenDates(lastPhotoDate, todayStr());
+  if(sinceLast === null || sinceLast < 0) stats.push({v:'—', unit:'', k:'마지막 기록'});
+  else if(sinceLast === 0) stats.push({v:'오늘', unit:'', k:'마지막 기록'});
+  else if(sinceLast === 1) stats.push({v:'어제', unit:'', k:'마지막 기록'});
+  else stats.push({v:String(sinceLast), unit:'일 전', k:'마지막 기록'});
+  const statsEl = document.getElementById('detailStats');
+  statsEl.innerHTML = stats.map(s=>`
+    <div class="detail-stat">
+      <div class="v">${s.v}${s.unit?`<em>${s.unit}</em>`:''}</div>
+      <div class="k">${s.k}</div>
+    </div>`).join('');
+  statsEl.classList.remove('hidden');
+
   if(photos.length===0){
     cmpSlots = cmpSlots.map(()=>null);
   } else {
@@ -258,13 +279,17 @@ async function renderDetail(trialId){
   if(dateKeys.length===0){
     timelineAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
   } else {
-    timelineAll.innerHTML = dateKeys.map(d=>`
+    timelineAll.innerHTML = dateKeys.map(d=>{
+      const age = daysBetweenDates(ageBase, d);
+      const ageBadge = (age !== null && age >= 0) ? `<span class="age">${ageLabel.replace(' 후','')} +${age}일</span>` : '';
+      return `
       <div class="date-group">
-        <div class="date-head">${d} <span class="cnt">${grouped[d].length}장</span></div>
+        <div class="date-head">${d} ${ageBadge}<span class="cnt">${grouped[d].length}장</span></div>
         <div class="photo-grid">
           ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoThumbUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   initTimelineDelegation();
 
