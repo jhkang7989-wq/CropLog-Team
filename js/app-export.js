@@ -42,7 +42,7 @@ function getPhotoWorker(){
   if(_photoWorker !== undefined) return _photoWorker;
   if(typeof Worker==='undefined' || typeof OffscreenCanvas==='undefined'){ _photoWorker = null; return null; }
   try{
-    const w = new Worker('js/photo-worker.js');
+    const w = new Worker(`js/photo-worker.js?v=${APP_VERSION}`);
     w.onmessage = (e)=>{
       const {id, ok, blob, thumbBlob, error} = e.data;
       const p = _photoWorkerPending.get(id);
