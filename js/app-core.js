@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 43;
+const APP_VERSION = 44;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -220,6 +220,7 @@ function icon(name, size){
     calendarPlus: `<svg ${c} ${s}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>`,
     rotate: `<svg ${c} ${s}><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3,4 3,9 8,9"/></svg>`,
     growers: `<svg ${c} ${s}><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 5.5a3 3 0 0 1 0 5.4"/><path d="M17.5 19c0-2.4-1-4-2.5-4.6"/></svg>`,
+    download: `<svg ${c} ${s}><path d="M12 4v11"/><polyline points="7,10 12,15 17,10"/><path d="M4 19h16"/></svg>`,
     phone: `<svg ${c} ${s}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4Z"/></svg>`
   };
   return icons[name] || '';
@@ -331,12 +332,12 @@ function copyTextToClipboard(text, okMsg){
     toast('이 브라우저는 복사가 지원되지 않아요');
   }
 }
-const views = ['home','settings','crops','newtrial','detail','upload','report','xcompare','help','calendar','alllist','growers','grower'];
+const views = ['home','settings','crops','newtrial','detail','upload','xcompare','help','calendar','alllist','growers','grower'];
 const topLevelViews = ['home','growers','settings','calendar'];
 /* 화면이 서로에 대해 "부모"인 관계 — 뒤로가기 방향(왼쪽에서) 전환 애니메이션을 판단하는 데만 씀 */
 const VIEW_PARENT = {
   alllist:'home', settings:'home', crops:'settings', help:'settings',
-  detail:'home', newtrial:'home', upload:'detail', report:'detail',
+  detail:'home', newtrial:'home', upload:'detail',
   grower:'growers', xcompare:'settings'
 };
 let navStack = [];
@@ -377,7 +378,6 @@ async function go(view, arg, fromPopstate){
     if(view==='newtrial'){ await renderNewTrialForm(); }
     if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
     if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
-    if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
     if(view==='xcompare'){ renderXCompare(); }
     if(view==='calendar'){ await renderCalendar(); }
     if(view==='alllist'){ await renderAllList('recent'); }

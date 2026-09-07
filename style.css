@@ -47,7 +47,7 @@
     overflow:hidden; /* 스크롤은 항상 main 안에서만 — 문서 자체가 스크롤되면
       모바일 브라우저 주소창이 접혔다 펴지면서 하단 고정 네비바가 출렁여 보임 */
   }
-  h1, .section-title, .cal-title, .help-title, .report-head{
+  h1, .section-title, .cal-title, .help-title{
     font-weight:800;letter-spacing:-0.01em;
   }
   #app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;background:var(--cream);}
@@ -375,18 +375,35 @@
   .photo-thumb{aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--line);cursor:pointer;position:relative;contain:content;}
   .photo-thumb img{width:100%;height:100%;object-fit:cover;}
   .photo-thumb .chk{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.85);border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;}
-  .rp-preview-btn{position:absolute;bottom:5px;left:5px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.55);color:#fff;display:flex;align-items:center;justify-content:center;}
-  .report-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:92;display:flex;flex-direction:column;}
-  .report-preview-top{display:flex;justify-content:flex-end;padding:14px 16px;color:#fff;cursor:pointer;}
-  .report-preview-imgwrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:0 12px 20px;}
-  .report-preview-imgwrap img{max-width:100%;max-height:100%;object-fit:contain;}
   .mark-badge{position:absolute;bottom:5px;left:5px;width:20px;height:20px;border-radius:50%;background:#B54A3A;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);}
   #timelineAll .photo-thumb .chk{display:none;}
   #timelineAll.select-mode .photo-thumb .chk{display:flex;}
   #timelineAll.select-mode .photo-thumb{outline:2px solid transparent;border-radius:6px;}
   #timelineAll.select-mode .photo-thumb.selected{outline-color:var(--leaf);}
-  .timeline-select-bar{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0));display:flex;gap:8px;z-index:30;}
-  .timeline-select-bar .btn{flex:1;margin:0;}
+  /* 사진 길게 눌러 선택했을 때 뜨는 하단바 — 아이콘 위주로 */
+  .timeline-select-bar{
+    position:fixed;left:0;right:0;bottom:0;background:var(--paper);
+    border-top:1px solid var(--line);z-index:30;
+    padding:0 8px calc(6px + env(safe-area-inset-bottom,0));
+    box-shadow:0 -6px 20px -10px rgba(20,23,26,0.25);
+  }
+  .select-bar-head{display:flex;align-items:center;gap:10px;padding:10px 8px 4px;}
+  .select-bar-close{background:none;border:none;color:var(--muted);display:flex;padding:2px;cursor:pointer;}
+  .select-bar-count{font-size:13px;font-weight:700;color:var(--ink);}
+  .select-bar-actions{display:flex;}
+  .select-act{
+    flex:1;background:none;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    padding:8px 2px 10px;color:var(--ink);font-size:11px;font-weight:600;
+    font-family:inherit;transition:opacity .12s ease, transform .12s ease;
+  }
+  .select-act svg{color:var(--soil);}
+  .select-act.danger, .select-act.danger svg{color:var(--danger);}
+  .select-act:active{transform:scale(0.94);opacity:0.7;}
+  .select-act[disabled]{opacity:0.32;pointer-events:none;}
+  /* 저장된 비교 삭제 바는 예전처럼 버튼 두 개 */
+  .select-bar-simple{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0));}
+  .select-bar-simple .btn{flex:1;margin:0;}
   .photo-thumb.add-thumb{border:2px dashed var(--sprout);background:var(--cream);display:flex;align-items:center;justify-content:center;color:var(--soil);}
   .photo-thumb.selected .chk{background:var(--leaf);color:#fff;border-color:var(--leaf);}
   .photo-thumb.selected::after{content:'';position:absolute;inset:0;border:2px solid var(--leaf);border-radius:6px;pointer-events:none;}
@@ -403,13 +420,6 @@
   .preview-strip .pv .rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
   .preview-strip .pv .rt{position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.55);color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;}
 
-  .report-card{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:16px;margin-bottom:14px;}
-  .report-head{font-size:14px;font-weight:700;color:var(--soil);}
-  .report-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
-  .report-row{display:flex;gap:8px;}
-  .report-row .cell{flex:1;}
-  .report-row img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;}
-  .report-row .cap{font-size:9.5px;color:var(--muted);text-align:center;margin-top:4px;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(20,18,14,0.5);z-index:90;display:flex;align-items:flex-end;justify-content:center;}
   .modal-sheet{background:var(--paper);width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:20px 18px 28px;max-height:85vh;overflow-y:auto;}

@@ -139,7 +139,7 @@ function showSavedCmpSelectBar(scope){
   if(!bar){
     bar = document.createElement('div');
     bar.id = barId;
-    bar.className = 'timeline-select-bar';
+    bar.className = 'timeline-select-bar select-bar-simple';
     document.body.appendChild(bar);
   }
   const n = savedCmpSelectedIds[scope].size;
@@ -523,9 +523,67 @@ function showTimelineSelectBar(){
     bar.className = 'timeline-select-bar';
     document.body.appendChild(bar);
   }
+  const n = timelineSelectedIds.size;
+  const onlyOne = n === 1;   // 마킹은 사진 한 장에만 하는 동작
   bar.innerHTML = `
-    <button class="btn btn-ghost" onclick="exitTimelineSelectMode()">취소</button>
-    <button class="btn btn-danger" onclick="deleteTimelineSelected()">${timelineSelectedIds.size}개의 사진 삭제하기</button>`;
+    <div class="select-bar-head">
+      <button class="select-bar-close" onclick="exitTimelineSelectMode()" aria-label="선택 취소">${icon('close',18)}</button>
+      <span class="select-bar-count">${n}장 선택</span>
+    </div>
+    <div class="select-bar-actions">
+      <button class="select-act" onclick="markTimelineSelected()" ${onlyOne?'':'disabled'}>
+        ${icon('pen',22)}<span>마킹</span>
+      </button>
+      <button class="select-act" onclick="shareTimelineSelected()">
+        ${icon('share',22)}<span>공유</span>
+      </button>
+      <button class="select-act" onclick="downloadTimelineSelected()">
+        ${icon('download',22)}<span>내려받기</span>
+      </button>
+      <button class="select-act danger" onclick="deleteTimelineSelected()">
+        ${icon('trash',22)}<span>삭제</span>
+      </button>
+    </div>`;
+}
+/* ---- 선택한 사진들에 대한 동작 ---- */
+function markTimelineSelected(){
+  const ids = Array.from(timelineSelectedIds);
+  if(ids.length !== 1){ toast('마킹은 사진 한 장만 선택했을 때 할 수 있어요'); return; }
+  const id = ids[0];
+  exitTimelineSelectMode();
+  openMarkingEditor(id);
+}
+async function downloadTimelineSelected(){
+  const ids = Array.from(timelineSelectedIds);
+  if(ids.length===0) return;
+  if(ids.length > 1) toast(`사진 ${ids.length}장 저장 중...`);
+  for(const id of ids){
+    try{ await downloadBlob(id); }catch(e){ toast('일부 사진을 저장하지 못했어요'); }
+  }
+  exitTimelineSelectMode();
+}
+async function shareTimelineSelected(){
+  const ids = Array.from(timelineSelectedIds);
+  if(ids.length===0) return;
+  if(ids.length === 1){ await shareBlob(ids[0]); exitTimelineSelectMode(); return; }
+  // 여러 장은 한 번에 공유 시도 — 브라우저가 여러 파일 공유를 지원할 때만 가능
+  try{
+    const files = [];
+    for(const id of ids){
+      const p = await idbGet('photos', id);
+      const blob = await fetchPhotoBlob(id);
+      files.push(new File([blob], `${p.date}_${id.slice(-4)}.jpg`, {type: blob.type||'image/jpeg'}));
+    }
+    if(navigator.share && navigator.canShare && navigator.canShare({files})){
+      await navigator.share({files, title:'작황 사진'});
+      exitTimelineSelectMode();
+    } else {
+      toast('여러 장 한 번에 공유가 안 되는 기기예요. 내려받기로 저장한 뒤 공유해주세요.');
+    }
+  }catch(e){
+    if(e && e.name === 'AbortError') return;   // 사용자가 공유 시트를 닫은 경우
+    toast('공유하지 못했어요');
+  }
 }
 function exitTimelineSelectMode(){
   timelineSelectMode = false;
