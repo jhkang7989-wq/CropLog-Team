@@ -358,8 +358,7 @@ async function go(view, arg, fromPopstate){
   setTabActive('tabGrowers', view==='growers' || view==='grower');
   setTabActive('tabCalendar', view==='calendar');
   setTabActive('tabSettings', view==='settings');
-  window.scrollTo(0,0);
-  bindScrollFloaters(view);
+  bindScrollFloaters(view); // 화면별 스크롤 초기화는 여기서 main.scrollTop=0으로 처리
   if(!fromPopstate){
     navStack.push({view, arg});
     history.pushState({navIndex: navStack.length-1}, '');
