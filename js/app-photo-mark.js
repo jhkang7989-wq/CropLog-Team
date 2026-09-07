@@ -576,7 +576,7 @@ function renderLightbox(){
       <a class="a primary" onclick="shareBlob('${p.id}')">공유</a>
       <a class="a" onclick="openMarkingEditor('${p.id}')">마킹</a>
       <a class="a" onclick="rotateLightboxPhoto()">${icon('rotate',13)} 회전</a>
-      <a class="a" style="background:rgba(181,84,63,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
+      <a class="a" style="background:rgba(168,67,46,0.4);" onclick="deleteLightboxPhoto()">삭제</a>
     </div>`;
   attachLightboxGestures();
 }

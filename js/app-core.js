@@ -241,7 +241,7 @@ function textColorFor(bgHex){
   const c = bgHex.replace('#','');
   const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
   const brightness = (r*299+g*587+b*114)/1000;
-  return brightness > 175 ? '#2c2620' : '#ffffff';
+  return brightness > 175 ? '#1B2420' : '#ffffff';
 }
 
 /* ================= 라우팅 ================= */
