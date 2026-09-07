@@ -348,39 +348,50 @@ async function go(view, arg, fromPopstate){
   targetSection.classList.remove('nav-forward','nav-back');
   targetSection.classList.add(isBack ? 'nav-back' : 'nav-forward');
   targetSection.classList.remove('hidden');
-  if(view==='home'){ await renderHome(); }
-  if(view==='crops'){ await renderCrops(); }
-  if(view==='settings'){
-    document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
-    document.getElementById('scheduleReminderSwitch').classList.toggle('on', appSettings.scheduleReminders);
-    const user = getCurrentUser();
-    const nameEl = document.getElementById('settingsUserName');
-    if(nameEl) nameEl.textContent = user ? user.name : '';
-  }
-  if(view==='newtrial'){ await renderNewTrialForm(); }
-  if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
-  if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
-  if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
-  if(view==='xcompare'){ renderXCompare(); }
-  if(view==='calendar'){ await renderCalendar(); }
-  if(view==='alllist'){ await renderAllList('recent'); }
-  if(view==='growers'){ await renderGrowers(); }
-  if(view==='grower'){ await renderGrower(arg); }
 
+  /* 탭바·플로팅 버튼·히스토리는 화면 내용을 불러오기 "전에" 맞춘다.
+     예전에는 이 처리가 렌더 뒤에 있어서, 신호가 끊겨 렌더가 실패하면
+     화면만 바뀌고 하단 탭바가 사라진 채로 남는 문제가 있었다. */
   const tabbar = document.getElementById('bottomTabbar');
-  tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
-  document.getElementById('tabHome').classList.toggle('active', view==='home');
-  document.getElementById('tabGrowers').classList.toggle('active', view==='growers' || view==='grower');
-  document.getElementById('tabCalendar').classList.toggle('active', view==='calendar');
-  document.getElementById('tabSettings').classList.toggle('active', view==='settings');
-
+  if(tabbar) tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
+  setTabActive('tabHome', view==='home');
+  setTabActive('tabGrowers', view==='growers' || view==='grower');
+  setTabActive('tabCalendar', view==='calendar');
+  setTabActive('tabSettings', view==='settings');
   window.scrollTo(0,0);
   bindScrollFloaters(view);
-
   if(!fromPopstate){
     navStack.push({view, arg});
     history.pushState({navIndex: navStack.length-1}, '');
   }
+
+  try{
+    if(view==='home'){ await renderHome(); }
+    if(view==='crops'){ await renderCrops(); }
+    if(view==='settings'){
+      document.getElementById('feedbackSwitch').classList.toggle('on', appSettings.feedback);
+      document.getElementById('scheduleReminderSwitch').classList.toggle('on', appSettings.scheduleReminders);
+      const user = getCurrentUser();
+      const nameEl = document.getElementById('settingsUserName');
+      if(nameEl) nameEl.textContent = user ? user.name : '';
+    }
+    if(view==='newtrial'){ await renderNewTrialForm(); }
+    if(view==='detail'){ currentTrialId = arg; await renderDetail(arg); }
+    if(view==='upload'){ currentTrialId = arg; await renderUpload(arg); }
+    if(view==='report'){ currentTrialId = arg; await renderReport(arg); }
+    if(view==='xcompare'){ renderXCompare(); }
+    if(view==='calendar'){ await renderCalendar(); }
+    if(view==='alllist'){ await renderAllList('recent'); }
+    if(view==='growers'){ await renderGrowers(); }
+    if(view==='grower'){ await renderGrower(arg); }
+  }catch(e){
+    // 화면을 못 불러와도 탭바는 살아 있으니 다른 화면으로 빠져나갈 수 있다.
+    toast((e && e.message) ? e.message : '화면을 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+  }
+}
+function setTabActive(id, on){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('active', on);
 }
 function bindScrollFloaters(view){
   const section = document.getElementById('view-'+view);
