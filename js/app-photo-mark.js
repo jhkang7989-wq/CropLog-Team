@@ -553,7 +553,18 @@ function openLightbox(photoId){
   if(lightboxIndex<0) return;
   renderLightbox();
 }
-function lbCurrentPhoto(){ return allPhotosCache[lightboxIndex]; }
+function lbCurrentIndex(){
+  // lightboxIndex는 스크롤이 멈춘 뒤 120ms 디바운스로만 갱신되므로,
+  // 스와이프 직후 바로 버튼을 누르면 아직 이전 사진 인덱스일 수 있음 —
+  // 액션 버튼(공유/저장/마킹/회전/삭제)은 항상 실제 스크롤 위치에서 즉시 계산해야
+  // "방금 스와이프한 사진"이 아니라 "그 전 사진"에 잘못 적용되는 걸 막을 수 있음
+  const scroller = document.getElementById('lbScroller');
+  if(scroller && scroller.clientWidth){
+    return Math.min(allPhotosCache.length-1, Math.max(0, Math.round(scroller.scrollLeft / scroller.clientWidth)));
+  }
+  return lightboxIndex;
+}
+function lbCurrentPhoto(){ return allPhotosCache[lbCurrentIndex()]; }
 let lbSuppressNavClickUntil = 0; // 드래그(스와이프) 직후 손가락이 떨어진 자리에 이전/다음 버튼이 우연히 있으면
                                   // 브라우저가 뒤늦게 합성 클릭을 발생시켜 한 장 더 넘어가버리는 경우 방지
 function renderLightbox(){
@@ -606,7 +617,11 @@ function upgradeNearbyLightboxImages(centerIndex){
   }
 }
 function updateLightboxChrome(){
-  const p = lbCurrentPhoto();
+  // 여기서는 항상 lightboxIndex를 그대로 신뢰해야 함 — 호출하는 쪽(디바운스된 스크롤 정착
+  // 핸들러, lightboxNav)이 이미 "지금 보여줘야 할 사진"으로 갱신해둔 상태이기 때문.
+  // lbCurrentPhoto()(실시간 스크롤 위치 기반)를 쓰면 lightboxNav()의 부드러운 스크롤이
+  // 아직 도착하지 않은 순간에 직전 사진 기준으로 잘못 표시됨.
+  const p = allPhotosCache[lightboxIndex];
   if(!p) return;
   const counter = document.getElementById('lbCounter');
   if(counter) counter.textContent = `${p.date} · ${lightboxIndex+1}/${allPhotosCache.length}`;
@@ -817,6 +832,7 @@ function rotateImageBlob(blob, degrees){
   });
 }
 async function rotateLightboxPhoto(){
+  lightboxIndex = lbCurrentIndex();
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;
   try{
@@ -830,6 +846,7 @@ async function rotateLightboxPhoto(){
   }
 }
 async function deleteLightboxPhoto(){
+  lightboxIndex = lbCurrentIndex();
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;
   const ok = await showConfirm({title:'사진 삭제', message:'이 사진을 삭제할까요?\n되돌릴 수 없어요.', confirmLabel:'삭제', danger:true});
@@ -896,7 +913,8 @@ async function shareBlob(photoId){
   if(isNativeApp()){ await nativeShareBlob(blob, `${p.date}.jpg`, '작황 사진'); return; }
   const file = new File([blob], `${p.date}.jpg`, {type:blob.type||'image/jpeg'});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file], title:'작황 사진'}); }catch(e){}
+    try{ await navigator.share({files:[file], title:'작황 사진'}); }
+    catch(e){ if(e && e.name!=='AbortError') toast('공유하지 못했어요: '+(e&&e.message?e.message:e)); }
   } else {
     toast('이 브라우저는 공유가 지원되지 않아요. 저장 후 공유해주세요.');
   }
