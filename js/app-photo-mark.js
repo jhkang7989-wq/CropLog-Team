@@ -642,7 +642,6 @@ function attachLightboxGestures(){
   let swipeStartX=0, swipeStartY=0;
   let lastTap=0;
   let activeImg=null;
-  let dragStartIndex=null; // 이 스와이프가 시작된 페이지 — 세게 플릭해도 한 장만 넘어가도록 강제 보정할 때 기준점
 
   function currentPageImg(){
     const page = scroller.children[lightboxIndex];
@@ -693,7 +692,6 @@ function attachLightboxGestures(){
         startPanX = panX; startPanY = panY;
       } else {
         mode=null; // 확대 안 된 상태의 가로 드래그는 네이티브 스크롤에 맡김
-        dragStartIndex = lightboxIndex;
       }
     }
   }, {passive:true});
@@ -775,16 +773,7 @@ function attachLightboxGestures(){
     clearTimeout(scrollSettleTimer);
     scrollSettleTimer = setTimeout(()=>{
       const w = scroller.clientWidth || 1;
-      let idx = Math.min(allPhotosCache.length-1, Math.max(0, Math.round(scroller.scrollLeft / w)));
-      // scroll-snap-stop:always를 무시하는 브라우저(구형 삼성 인터넷 등) 대비 폴백:
-      // 세게 플릭해서 스와이프 시작 지점보다 2장 이상 지나쳤으면 한 장만 이동한 지점으로 강제 보정
-      if(dragStartIndex!==null){
-        if(Math.abs(idx - dragStartIndex) > 1){
-          idx = dragStartIndex + Math.sign(idx - dragStartIndex);
-          scrollLightboxTo(idx, true);
-        }
-        dragStartIndex = null;
-      }
+      const idx = Math.min(allPhotosCache.length-1, Math.max(0, Math.round(scroller.scrollLeft / w)));
       if(idx !== lightboxIndex){
         lightboxIndex = idx;
         updateLightboxChrome();
