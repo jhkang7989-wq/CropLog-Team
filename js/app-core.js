@@ -449,6 +449,9 @@ function pickProductSuggestion(inputId, boxId, idx){
 }
 // 시교 저장 시점에 호출: 골라둔 제품이 있으면(그리고 그 사이 품목이 안 바뀌었으면) 그
 // id를, 아니면 그 품목 안에서 정확히 같은 이름의 제품을 재사용하거나 새로 만든다.
+// 제품 연결은 어디까지나 "표기를 통일해주는" 부가 기능이라, 서버 오류로 실패해도
+// 타이핑한 이름 그대로는 저장돼야 한다(시교 등록/수정 자체를 막으면 안 됨) — 그래서
+// 여기서 실패를 삼키고 productId 없이 이름만 쓰는 쪽으로 내려간다.
 async function resolveProductPicker(inputId, getCropId){
   const input = document.getElementById(inputId);
   const name = (input.value || '').trim();
@@ -459,11 +462,15 @@ async function resolveProductPicker(inputId, getCropId){
     return { productId: state.selectedId, name };
   }
   if(!cropId) return { productId: null, name };
-  const matches = await fetchProducts(cropId, name);
-  const exact = matches.find(p=>p.name===name);
-  if(exact) return { productId: exact.id, name: exact.name };
-  const created = await idbPut('products', {cropId, name});
-  return { productId: created.id, name: created.name };
+  try{
+    const matches = await fetchProducts(cropId, name);
+    const exact = matches.find(p=>p.name===name);
+    if(exact) return { productId: exact.id, name: exact.name };
+    const created = await idbPut('products', {cropId, name});
+    return { productId: created.id, name: created.name };
+  }catch(e){
+    return { productId: null, name };
+  }
 }
 function copyFieldAddress(idx){
   const addr = currentFieldAddresses[idx];
