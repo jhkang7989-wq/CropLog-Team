@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 57;
+const APP_VERSION = 58;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -112,6 +112,10 @@ function idbDelete(store, key){
 function fetchGrowers(q){
   const query = q ? `?q=${encodeURIComponent(q)}` : '';
   return apiFetch(`/api/growers${query}`);
+}
+// 비슷한 이름 농가 합치기 — duplicateIds에 연결된 시교를 primaryId로 옮기고 duplicateIds를 지움.
+function mergeGrowers(primaryId, duplicateIds){
+  return apiJson('/api/growers/merge', 'POST', {primaryId, duplicateIds});
 }
 // 시교 삭제 시 서버가 사진/메모/비교뷰/일정까지 한 번에 정리(R2 파일 포함)해주므로
 // 예전처럼 idbDeleteWhere로 미리 하나씩 지울 필요가 없어짐 — 호출부에서 idbDelete('trials', id)만 하면 됨.
