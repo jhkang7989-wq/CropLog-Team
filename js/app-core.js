@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 55;
+const APP_VERSION = 56;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -332,11 +332,11 @@ function copyTextToClipboard(text, okMsg){
     toast('이 브라우저는 복사가 지원되지 않아요');
   }
 }
-const views = ['home','settings','crops','newtrial','detail','upload','xcompare','help','calendar','alllist','growers','grower'];
-const topLevelViews = ['home','growers','settings','calendar'];
+const views = ['home','settings','crops','newtrial','detail','upload','xcompare','help','calendar','alllist','growers','grower','more'];
+const topLevelViews = ['home','alllist','growers','more'];
 /* 화면이 서로에 대해 "부모"인 관계 — 뒤로가기 방향(왼쪽에서) 전환 애니메이션을 판단하는 데만 씀 */
 const VIEW_PARENT = {
-  alllist:'home', settings:'home', crops:'settings', help:'settings',
+  settings:'more', calendar:'more', crops:'settings', help:'settings',
   detail:'home', newtrial:'home', upload:'detail',
   grower:'growers', xcompare:'settings'
 };
@@ -356,9 +356,9 @@ async function go(view, arg, fromPopstate){
   const tabbar = document.getElementById('bottomTabbar');
   if(tabbar) tabbar.classList.toggle('hidden', !topLevelViews.includes(view));
   setTabActive('tabHome', view==='home');
+  setTabActive('tabAlllist', view==='alllist');
   setTabActive('tabGrowers', view==='growers' || view==='grower');
-  setTabActive('tabCalendar', view==='calendar');
-  setTabActive('tabSettings', view==='settings');
+  setTabActive('tabMore', view==='more');
   bindScrollFloaters(view); // 화면별 스크롤 초기화는 여기서 main.scrollTop=0으로 처리
   if(!fromPopstate){
     navStack.push({view, arg});

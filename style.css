@@ -29,10 +29,10 @@
   .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
   @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
   .lightbox{ animation: lightboxIn .18s ease; }
-  .btn, .btn-mini, .action, .back, .list-item, .recent-item, .pin-card, .crop-tile, .photo-thumb, .tab, .settings-row{
+  .btn, .btn-mini, .action, .back, .list-item, .recent-item, .crop-tile, .photo-thumb, .tab, .settings-row{
     transition: transform .12s ease, opacity .12s ease, background-color .15s ease, border-color .15s ease;
   }
-  .btn:active, .btn-mini:active, .action:active, .back:active, .list-item:active, .recent-item:active, .pin-card:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
+  .btn:active, .btn-mini:active, .action:active, .back:active, .list-item:active, .recent-item:active, .crop-tile:active, .photo-thumb:active, .tab:active, .settings-row:active{
     transform: scale(0.97); opacity:0.82;
   }
   .switch{ transition: background-color .18s ease; }
@@ -101,9 +101,7 @@
   .section-title{font-size:14.5px;font-weight:700;color:var(--soil);margin:22px 0 11px;display:flex;align-items:center;gap:6px;letter-spacing:0.01em;}
   .section-title .link{font-size:11px;color:var(--leaf);font-weight:600;cursor:pointer;margin-left:auto;}
 
-  /* ---- 즐겨찾기 핀 카드 (품목 지정 색 유지, 형태만 정돈) ---- */
   .home-board{display:flex;flex-direction:column;gap:4px;}
-  .pin-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:4px 2px 6px;}
   .saved-cmp-row{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;}
   .saved-cmp-thumb{flex:0 0 auto;width:96px;height:96px;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:var(--paper);position:relative;}
   .saved-cmp-row .chk{display:none;}
@@ -147,18 +145,6 @@
   .scv-wrap{flex:1;width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
   .scv-wrap img{max-width:96%;max-height:96%;object-fit:contain;border-radius:6px;will-change:transform;}
   .saved-cmp-thumb img{width:100%;height:100%;object-fit:cover;}
-  .pin-card{
-    background:var(--paper);border:1px solid var(--line);
-    border-radius:13px;padding:10px 11px;cursor:pointer;
-    position:relative;overflow:hidden;contain:content;
-  }
-  .pin-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
-  .pin-head .crop-dot{margin-right:0;}
-  .pin-card .ribbon{margin-left:auto;color:#F4B740;display:flex;flex:0 0 auto;}
-  .pin-card .crop-tag{font-size:10px;font-weight:700;color:var(--muted);}
-  .pin-card .name{font-size:13px;font-weight:800;line-height:1.3;margin-bottom:2px;color:var(--ink);}
-  .pin-card .seg{font-size:10.5px;color:var(--muted);}
-
   /* ---- 최근 등록: 품목별 원장(ledger) 그룹 ---- */
   .home-crop-group{margin-bottom:10px;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
   .home-crop-header{display:flex;align-items:center;gap:9px;padding:13px 14px;cursor:pointer;}
@@ -226,7 +212,6 @@
   .crop-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;border:1px solid rgba(0,0,0,0.1);}
 
   .empty{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 14px;line-height:1.6;background:transparent;border:1px dashed var(--line);border-radius:9px;}
-  .pin-row .empty{grid-column:1/-1;}
 
   .fab{
     position:fixed;bottom:76px;right:20px;

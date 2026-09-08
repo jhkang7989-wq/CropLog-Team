@@ -12,27 +12,6 @@ async function renderHome(){
   const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
   const trials = await idbGetAll('trials');
-  const favIds = (await idbGet('meta','favorites'))?.value || [];
-
-  // 즐겨찾기 - 세련된 컬러 카드
-  const favRow = document.getElementById('favRow');
-  const favTrials = trials.filter(t=>favIds.includes(t.id));
-  if(favTrials.length===0){
-    favRow.innerHTML = '<p class="empty" style="width:100%;">아직 즐겨찾기한 시교가 없어요. 시교 상세에서 별표를 눌러 추가해보세요.</p>';
-  } else {
-    favRow.innerHTML = favTrials.map(t=>{
-      const c = cropMap[t.cropId] || {name:'?',color:'#999'};
-      return `<div class="pin-card" onclick="go('detail','${t.id}')">
-        <div class="pin-head">
-          <span class="crop-dot" style="background:${c.color}"></span>
-          <span class="crop-tag">${c.name}</span>
-          <span class="ribbon">${icon('starFilled',12)}</span>
-        </div>
-        <div class="name">${trialTitle(t)}</div>
-        <div class="seg">${t.seg}</div>
-      </div>`;
-    }).join('');
-  }
 
   // 전체 시교 - 품목별 아코디언
   const recentList = document.getElementById('recentList');
@@ -75,7 +54,6 @@ async function renderHome(){
   }
   document.getElementById('searchInput').value='';
   document.getElementById('searchResults').classList.add('hidden');
-  document.getElementById('favSection').classList.remove('hidden');
   document.getElementById('recentSection').classList.remove('hidden');
 }
 async function renderAllList(sortMode){
@@ -132,11 +110,9 @@ async function renderSearch(){
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   if(!q){
     document.getElementById('searchResults').classList.add('hidden');
-    document.getElementById('favSection').classList.remove('hidden');
     document.getElementById('recentSection').classList.remove('hidden');
     return;
   }
-  document.getElementById('favSection').classList.add('hidden');
   document.getElementById('recentSection').classList.add('hidden');
   document.getElementById('searchResults').classList.remove('hidden');
 

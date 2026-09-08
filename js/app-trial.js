@@ -84,15 +84,6 @@ async function createTrial(){
 }
 
 /* ================= 시교 상세 ================= */
-async function toggleFav(){
-  const favMeta = (await idbGet('meta','favorites')) || {key:'favorites', value:[]};
-  const list = favMeta.value;
-  const idx = list.indexOf(currentTrialId);
-  if(idx>=0) list.splice(idx,1); else list.push(currentTrialId);
-  await idbPut('meta', {key:'favorites', value:list});
-  document.getElementById('favBtn').innerHTML = idx>=0 ? icon('star',17) : icon('starFilled',17);
-  if(appSettings.feedback) vibrate(idx>=0 ? 10 : [10,40,10]);
-}
 async function openTrialEditModal(){
   removeIfExists('trialEditModal');
   const t = await idbGet('trials', currentTrialId);
@@ -192,9 +183,6 @@ async function deleteTrialConfirm(){
     // 서버가 사진/메모/비교뷰/일정까지 한 번에 정리해줌 (R2 파일 포함)
     await withPin(pin, ()=> idbDelete('trials', currentTrialId));
   }catch(e){ toast(e.message); return; }
-  const favMeta = (await idbGet('meta','favorites')) || {key:'favorites', value:[]};
-  favMeta.value = favMeta.value.filter(id=>id!==currentTrialId);
-  await idbPut('meta', favMeta);
   toast('삭제했어요');
   go('home');
 }
@@ -237,9 +225,6 @@ async function renderDetail(trialId){
   } else {
     addrListEl.innerHTML = '';
   }
-  const favMeta = (await idbGet('meta','favorites'))?.value || [];
-  document.getElementById('favBtn').innerHTML = favMeta.includes(trialId) ? icon('starFilled',17) : icon('star',17);
-
   const photos = (await idbGetAllByIndex('photos','trialId',trialId)).sort((a,b)=>a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
   allPhotosCache = photos;
 
