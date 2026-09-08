@@ -23,9 +23,15 @@ let evalTouched = {custom:{}};
 // exact가 아니면(사진 추가 흐름의 기본 진입) 지난 값은 흐리게 표시만 하고
 // 실제로 누르기 전까진 "안 건드림" 상태로 둔다(그래도 저장하면 그 값 그대로 나감).
 async function initEvalSection(containerId, cropId, prefill, exact){
-  evalCustomItems = cropId ? await fetchEvalItems(cropId) : [];
+  // 상태를 먼저 초기화해서, 항목 목록을 못 가져와도(서버 아직 배포 전, 일시적 오류 등)
+  // 이전 시교를 보던 evalState가 그대로 남아 엉뚱한 시교에 저장되는 일이 없게 한다.
   evalState = {custom:{}};
   evalTouched = {custom:{}};
+  try{
+    evalCustomItems = cropId ? await fetchEvalItems(cropId) : [];
+  }catch(e){
+    evalCustomItems = [];
+  }
   EVAL_AXES.forEach(a=>{
     const v = prefill ? (prefill[a.key] ?? null) : null;
     evalState[a.key] = v;
@@ -117,22 +123,38 @@ function collectEvalPayload(){
   return payload;
 }
 async function getLatestEvaluation(trialId){
-  const list = await idbGetAllByIndex('evaluations', 'trialId', trialId);
-  return (list && list.length) ? list[0] : null;
+  // 사진 등록 화면(renderUpload)이 이 값을 기다렸다가 쓰기 때문에, 여기서 실패하면
+  // 사진 등록 자체가 막혀버린다 — 평가 이력을 못 가져와도 사진 업로드는 살아있어야 하니
+  // 예외를 삼키고 "지난 평가 없음"으로 취급한다.
+  try{
+    const list = await idbGetAllByIndex('evaluations', 'trialId', trialId);
+    return (list && list.length) ? list[0] : null;
+  }catch(e){
+    return null;
+  }
 }
 function saveEvaluationEntry(trialId, date, payload, existingId){
   return idbPut('evaluations', Object.assign({trialId, date}, payload, existingId ? {id:existingId} : {}));
 }
 
 /* ================= 시교 상세 - 평가 이력 탭 ================= */
+// renderDetail()의 await 체인 중간에 있어서, 여기서 실패하면(서버 아직 배포 전, 일시
+// 오류 등) 뒤에 있는 성장비교 탭까지 렌더가 안 되는 문제가 생긴다 — 그래서 이 탭 자체를
+// 못 불러온 상태로만 표시하고 예외를 밖으로 던지지 않는다.
 async function renderEvalHistory(trialId){
-  const t = await idbGet('trials', trialId);
-  const [list, items] = await Promise.all([
-    idbGetAllByIndex('evaluations', 'trialId', trialId),
-    t ? fetchEvalItems(t.cropId) : Promise.resolve([])
-  ]);
-  const itemMap = Object.fromEntries(items.map(i=>[i.id,i]));
   const el = document.getElementById('evalHistoryList');
+  let list, items;
+  try{
+    const t = await idbGet('trials', trialId);
+    [list, items] = await Promise.all([
+      idbGetAllByIndex('evaluations', 'trialId', trialId),
+      t ? fetchEvalItems(t.cropId) : Promise.resolve([])
+    ]);
+  }catch(e){
+    el.innerHTML = '<p class="empty">평가를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</p>';
+    return;
+  }
+  const itemMap = Object.fromEntries(items.map(i=>[i.id,i]));
   if(!list.length){
     el.innerHTML = '<p class="empty">등록된 평가가 없어요. "+ 추가"로 남기거나 사진 추가할 때 같이 남겨보세요.</p>';
     return;
@@ -216,9 +238,15 @@ async function deleteEvalEntry(evalId){
 
 /* ================= 품목 관리 - 평가 항목(품목별 커스텀) ================= */
 async function renderCropEvalItems(cropId){
-  const items = await fetchEvalItems(cropId);
   const el = document.getElementById('cropEvalItemList');
   if(!el) return;
+  let items;
+  try{
+    items = await fetchEvalItems(cropId);
+  }catch(e){
+    el.innerHTML = '<p class="empty" style="padding:8px 0;">평가 항목을 불러오지 못했어요.</p>';
+    return;
+  }
   if(!items.length){
     el.innerHTML = '<p class="empty" style="padding:8px 0;">아직 등록된 평가 항목이 없어요.</p>';
     return;
