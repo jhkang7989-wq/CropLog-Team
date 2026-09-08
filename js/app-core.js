@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 61;
+const APP_VERSION = 62;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -110,6 +110,7 @@ function idbPut(store, val){
   if(store==='growers') return apiJson('/api/growers', 'POST', val);
   if(store==='evaluations') return apiJson(`/api/trials/${val.trialId}/evaluations`, 'POST', val);
   if(store==='evalItems') return apiJson('/api/eval-items', 'POST', val);
+  if(store==='products') return apiJson('/api/products', 'POST', val);
   if(store==='meta') return Promise.resolve(setLocalMeta(val));
   // photos/comparisons는 파일 업로드가 껴서 각자 전용 함수(uploadPhoto 등)로 처리 — 여기로 오면 안 됨
   console.error('idbPut: 지원 안 하는 store', store, val);
@@ -125,6 +126,7 @@ function idbDelete(store, key){
   if(store==='growers') return apiFetch(`/api/growers/${key}`, { method:'DELETE' });
   if(store==='evaluations') return apiFetch(`/api/evaluations/${key}`, { method:'DELETE' });
   if(store==='evalItems') return apiFetch(`/api/eval-items/${key}`, { method:'DELETE' });
+  if(store==='products') return apiFetch(`/api/products/${key}`, { method:'DELETE' });
   return Promise.resolve(true);
 }
 // 농가 검색 — growers 목록 화면과 성함 자동완성(아래 그로워 피커)이 함께 씀.
@@ -135,6 +137,12 @@ function fetchGrowers(q){
 // 품목별 평가 항목 정의 — 품목 관리 화면(항목 추가·삭제)과 평가 입력 화면이 함께 씀.
 function fetchEvalItems(cropId){
   return apiFetch(`/api/eval-items?cropId=${encodeURIComponent(cropId)}`);
+}
+// 품목 안에서 제품 검색 — 아래 프로덕트 피커가 씀.
+function fetchProducts(cropId, q){
+  const query = new URLSearchParams({cropId});
+  if(q) query.set('q', q);
+  return apiFetch(`/api/products?${query.toString()}`);
 }
 // 비슷한 이름 농가 합치기 — duplicateIds에 연결된 시교를 primaryId로 옮기고 duplicateIds를 지움.
 function mergeGrowers(primaryId, duplicateIds){
@@ -394,6 +402,68 @@ async function resolveGrowerPicker(inputId){
   if(exact) return { growerId: exact.id, growerName: exact.name };
   const created = await idbPut('growers', {name});
   return { growerId: created.id, growerName: created.name };
+}
+
+/* ================= 제품 검색형 선택(프로덕트 피커) =================
+   시교 등록/수정의 "제품/시교명" 입력칸에서 씀. 그로워 피커와 같은 방식이지만,
+   제품은 품목마다 따로 있어서(같은 "602"도 고추와 토마토는 다른 제품) 검색을
+   cropId로 한정한다. 새 시교 등록 폼은 커스텀 품목을 그 자리에서 만들 수도 있어서
+   cropId를 고정값이 아니라 함수로 받아, 저장 시점에 실제로 정해진 cropId를 쓴다. */
+const _productPicker = {};
+function initProductPicker(inputId, boxId, getCropId, initialId, initialName){
+  _productPicker[inputId] = { selectedId: initialId || null, selectedName: initialName || '', selectedCropId: getCropId(), matches: [] };
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(boxId);
+  if(!input || !box) return;
+  let debounceTimer = null;
+  input.oninput = () => {
+    const val = input.value;
+    if(_productPicker[inputId].selectedName !== val) _productPicker[inputId].selectedId = null;
+    clearTimeout(debounceTimer);
+    const q = val.trim();
+    const cropId = getCropId();
+    if(!q || !cropId){ box.classList.add('hidden'); box.innerHTML=''; return; }
+    debounceTimer = setTimeout(async () => {
+      let matches = [];
+      try{ matches = await fetchProducts(cropId, q); }catch(e){ return; }
+      matches = matches.slice(0,5);
+      _productPicker[inputId].matches = matches;
+      if(!matches.length){ box.classList.add('hidden'); box.innerHTML=''; return; }
+      box.innerHTML = matches.map((p,i)=>`
+        <div class="grower-suggest-row" onmousedown="pickProductSuggestion('${inputId}','${boxId}',${i})">
+          <span class="gs-name">${escapeHtml(p.name)}</span>
+        </div>`).join('');
+      box.classList.remove('hidden');
+    }, 200);
+  };
+  input.onblur = () => { box.classList.add('hidden'); };
+}
+function pickProductSuggestion(inputId, boxId, idx){
+  const p = _productPicker[inputId].matches[idx];
+  if(!p) return;
+  document.getElementById(inputId).value = p.name;
+  _productPicker[inputId].selectedId = p.id;
+  _productPicker[inputId].selectedName = p.name;
+  _productPicker[inputId].selectedCropId = p.cropId;
+  document.getElementById(boxId).classList.add('hidden');
+}
+// 시교 저장 시점에 호출: 골라둔 제품이 있으면(그리고 그 사이 품목이 안 바뀌었으면) 그
+// id를, 아니면 그 품목 안에서 정확히 같은 이름의 제품을 재사용하거나 새로 만든다.
+async function resolveProductPicker(inputId, getCropId){
+  const input = document.getElementById(inputId);
+  const name = (input.value || '').trim();
+  const cropId = getCropId();
+  if(!name) return { productId: null, name: null };
+  const state = _productPicker[inputId];
+  if(state && state.selectedId && state.selectedName === name && state.selectedCropId === cropId){
+    return { productId: state.selectedId, name };
+  }
+  if(!cropId) return { productId: null, name };
+  const matches = await fetchProducts(cropId, name);
+  const exact = matches.find(p=>p.name===name);
+  if(exact) return { productId: exact.id, name: exact.name };
+  const created = await idbPut('products', {cropId, name});
+  return { productId: created.id, name: created.name };
 }
 function copyFieldAddress(idx){
   const addr = currentFieldAddresses[idx];
