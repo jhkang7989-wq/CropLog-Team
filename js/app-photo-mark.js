@@ -554,6 +554,8 @@ function openLightbox(photoId){
   renderLightbox();
 }
 function lbCurrentPhoto(){ return allPhotosCache[lightboxIndex]; }
+let lbSuppressNavClickUntil = 0; // 드래그(스와이프) 직후 손가락이 떨어진 자리에 이전/다음 버튼이 우연히 있으면
+                                  // 브라우저가 뒤늦게 합성 클릭을 발생시켜 한 장 더 넘어가버리는 경우 방지
 function renderLightbox(){
   const p = allPhotosCache[lightboxIndex];
   if(!p) return;
@@ -759,6 +761,10 @@ function attachLightboxGestures(){
           }
         }
         lastTap = now;
+      } else {
+        // 실제로 드래그(스와이프)였음 — 손가락이 떨어진 지점에 이전/다음 버튼이 있으면
+        // 브라우저가 뒤늦게 클릭을 합성시킬 수 있으니 잠깐 동안 네비게이션 클릭을 무시
+        lbSuppressNavClickUntil = Date.now() + 400;
       }
     }
     if(e.touches.length===0){ mode=null; activeImg=null; }
@@ -787,6 +793,7 @@ function attachLightboxGestures(){
   }, {passive:true});
 }
 function lightboxNav(dir){
+  if(Date.now() < lbSuppressNavClickUntil) return;
   const newIdx = lightboxIndex + dir;
   if(newIdx<0 || newIdx>=allPhotosCache.length) return;
   lightboxIndex = newIdx;
