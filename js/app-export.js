@@ -110,9 +110,9 @@ async function savePhotos(){
   toast('사진을 처리하고 있어요...');
   try{
     const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
-    for(const {blob, thumbBlob} of processed){
-      await uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date});
-    }
+    await Promise.all(processed.map(({blob, thumbBlob})=>
+      uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date})
+    ));
     await touchTrialUpdatedAt(currentTrialId);
     toast(`사진 ${pendingFiles.length}장 저장됐어요`);
     go('detail', currentTrialId);
