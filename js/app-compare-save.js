@@ -374,8 +374,10 @@ function pickXComparePhoto(which, trialId, photoId){
   renderXCompareSide(which);
 }
 /* ================= 메모 ================= */
+let currentNotesCache = [];
 async function renderNotes(trialId){
   const notes = (await idbGetAllByIndex('notes','trialId',trialId)).sort((a,b)=>b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+  currentNotesCache = notes;
   const list = document.getElementById('noteList');
   if(notes.length===0){
     list.innerHTML = '<p class="empty">등록된 메모가 없어요. "+ 추가"로 남겨보세요.</p>';
@@ -387,11 +389,16 @@ async function renderNotes(trialId){
           <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
         </div>
         <div style="display:flex;gap:4px;flex:0 0 auto;">
+          <button class="action" style="color:var(--muted);font-size:14px;" onclick="copyNoteText('${n.id}')" aria-label="메모 복사">${icon('copy',15)}</button>
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="openNoteModal('${n.id}')">${icon('edit',15)}</button>
           <button class="action" style="color:var(--danger);font-size:14px;" onclick="deleteNote('${n.id}')">${icon('trash',16)}</button>
         </div>
       </div>`).join('');
   }
+}
+function copyNoteText(noteId){
+  const n = currentNotesCache.find(x=>x.id===noteId);
+  copyTextToClipboard(n && n.text, '메모를 복사했어요');
 }
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
