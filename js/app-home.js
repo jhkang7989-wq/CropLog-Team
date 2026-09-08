@@ -281,7 +281,24 @@ function openCropEditModal(cropId){
         <div class="field"><label>품목명</label><input type="text" id="editCropName" value="${c.name}"></div>
         <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;">카드 색상</label>
         <div class="color-catalog" id="editColorCatalog"></div>
-        <div class="btn-row" style="margin-top:10px;">
+
+        <div class="section-title" style="margin-top:18px;">평가 항목 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">이 품목에서만 쓰여요</span></div>
+        <div id="cropEvalItemList"></div>
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field" style="margin-bottom:0;"><input type="text" id="newEvalItemName" placeholder="항목명 (예: 신미)"></div>
+          <div class="field" style="margin-bottom:0;">
+            <select id="newEvalItemType">
+              <option value="score">점수(1~5)</option>
+              <option value="number">숫자</option>
+              <option value="choice">선택(상/중/하)</option>
+              <option value="check">체크</option>
+              <option value="memo">메모</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:6px;" onclick="addEvalItem('${cropId}')">+ 항목 추가</button>
+
+        <div class="btn-row" style="margin-top:16px;">
           <button class="btn btn-danger" onclick="deleteCropConfirm()">삭제</button>
           <button class="btn btn-primary" onclick="saveEditedCrop()">저장</button>
         </div>
@@ -293,6 +310,7 @@ function openCropEditModal(cropId){
     cat.innerHTML = COLOR_CATALOG.map(col=>`<div class="color-dot ${col===sel?'sel':''}" style="background:${col}" onclick="pickEditColor('${col}', this)"></div>`).join('');
     window._editColor = ()=>sel;
     window.pickEditColor = (col, el)=>{ sel=col; document.querySelectorAll('#editColorCatalog .color-dot').forEach(d=>d.classList.remove('sel')); el.classList.add('sel'); window._editColor=()=>col; };
+    renderCropEvalItems(cropId);
   });
 }
 async function saveEditedCrop(){

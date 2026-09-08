@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 60;
+const APP_VERSION = 61;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -56,6 +56,7 @@ function idbGetAllByIndex(store, indexName, value){
   if(store==='photos' && indexName==='trialId') return apiFetch(`/api/trials/${value}/photos`);
   if(store==='notes' && indexName==='trialId') return apiFetch(`/api/trials/${value}/notes`);
   if(store==='trials' && indexName==='growerId') return apiFetch(`/api/growers/${value}/trials`);
+  if(store==='evaluations' && indexName==='trialId') return apiFetch(`/api/trials/${value}/evaluations`);
   return Promise.resolve([]);
 }
 // schedules/date에 IDBKeyRange를 쓰던 걸 from/to/date 쿼리로 변환
@@ -107,6 +108,8 @@ function idbPut(store, val){
   if(store==='schedules') return apiJson('/api/schedules', 'POST', val);
   if(store==='notes') return apiJson(`/api/trials/${val.trialId}/notes`, 'POST', val);
   if(store==='growers') return apiJson('/api/growers', 'POST', val);
+  if(store==='evaluations') return apiJson(`/api/trials/${val.trialId}/evaluations`, 'POST', val);
+  if(store==='evalItems') return apiJson('/api/eval-items', 'POST', val);
   if(store==='meta') return Promise.resolve(setLocalMeta(val));
   // photos/comparisons는 파일 업로드가 껴서 각자 전용 함수(uploadPhoto 등)로 처리 — 여기로 오면 안 됨
   console.error('idbPut: 지원 안 하는 store', store, val);
@@ -120,12 +123,18 @@ function idbDelete(store, key){
   if(store==='schedules') return apiFetch(`/api/schedules/${key}`, { method:'DELETE' });
   if(store==='crops') return apiFetch(`/api/crops/${key}`, { method:'DELETE' }).then(r=>{ _cropsCache=null; return r; });
   if(store==='growers') return apiFetch(`/api/growers/${key}`, { method:'DELETE' });
+  if(store==='evaluations') return apiFetch(`/api/evaluations/${key}`, { method:'DELETE' });
+  if(store==='evalItems') return apiFetch(`/api/eval-items/${key}`, { method:'DELETE' });
   return Promise.resolve(true);
 }
 // 농가 검색 — growers 목록 화면과 성함 자동완성(아래 그로워 피커)이 함께 씀.
 function fetchGrowers(q){
   const query = q ? `?q=${encodeURIComponent(q)}` : '';
   return apiFetch(`/api/growers${query}`);
+}
+// 품목별 평가 항목 정의 — 품목 관리 화면(항목 추가·삭제)과 평가 입력 화면이 함께 씀.
+function fetchEvalItems(cropId){
+  return apiFetch(`/api/eval-items?cropId=${encodeURIComponent(cropId)}`);
 }
 // 비슷한 이름 농가 합치기 — duplicateIds에 연결된 시교를 primaryId로 옮기고 duplicateIds를 지움.
 function mergeGrowers(primaryId, duplicateIds){

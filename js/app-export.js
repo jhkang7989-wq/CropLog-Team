@@ -9,6 +9,8 @@ async function renderUpload(trialId){
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
   document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${trialTitle(t)}`;
+  const prevEval = await getLatestEvaluation(trialId);
+  await initEvalSection('uploadEvalSection', t.cropId, prevEval, false);
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
@@ -105,16 +107,35 @@ async function processUploadFileMainThread(file, rotationDeg){
   }
 }
 async function savePhotos(){
-  if(pendingFiles.length===0){ toast('사진을 먼저 선택해주세요'); return; }
+  await runUploadSave({requireSomething:true});
+}
+// "사진 없이 나중에 추가할게요" — 평가만 입력하고 사진 없이 방문 기록만 남기는 경우도
+// 있어서(기획서: "종합 점수 하나만 찍고 나가도 저장됩니다"), 평가 값이 있으면 그것만
+// 저장하고, 아무것도 안 건드렸으면 예전처럼 그냥 취소하고 나간다.
+async function skipPhotosLink(){
+  await runUploadSave({requireSomething:false});
+}
+async function runUploadSave({requireSomething}){
   const date = document.getElementById('uploadDate').value || todayStr();
-  toast('사진을 처리하고 있어요...');
+  const evalPayload = collectEvalPayload();
+  if(pendingFiles.length===0 && !evalPayload){
+    if(requireSomething){ toast('사진을 선택하거나 평가를 입력해주세요'); return; }
+    cancelAction(()=>go('detail', currentTrialId), '사진 없이 넘어갔어요');
+    return;
+  }
+  toast('저장하고 있어요...');
   try{
-    const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
-    await Promise.all(processed.map(({blob, thumbBlob})=>
-      uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date})
-    ));
+    if(pendingFiles.length){
+      const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
+      await Promise.all(processed.map(({blob, thumbBlob})=>
+        uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date})
+      ));
+    }
+    if(evalPayload){
+      await saveEvaluationEntry(currentTrialId, date, evalPayload);
+    }
     await touchTrialUpdatedAt(currentTrialId);
-    toast(`사진 ${pendingFiles.length}장 저장됐어요`);
+    toast(pendingFiles.length ? `사진 ${pendingFiles.length}장 저장됐어요` : '평가를 저장했어요');
     go('detail', currentTrialId);
   }catch(e){
     showStorageError(e);

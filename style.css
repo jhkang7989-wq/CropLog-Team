@@ -480,6 +480,19 @@
   .grower-suggest-row .gs-name{font-size:13.5px;font-weight:700;color:var(--ink);}
   .grower-suggest-row .gs-sub{font-size:11px;color:var(--muted);}
   .detail-address .addr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ---- 평가 입력(공통 5축 + 품목별 커스텀 항목) ---- */
+  .eval-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .eval-row:last-child{border-bottom:none;}
+  .eval-label{font-size:12.5px;font-weight:700;color:var(--ink);flex:0 0 auto;}
+  .eval-scores{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .eval-score-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);background:var(--paper);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;padding:0;}
+  .eval-score-btn.sel{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+  .eval-score-btn.sel-ghost{background:var(--cream);border-color:var(--line);color:var(--soil);opacity:0.6;}
+  .eval-choice-btn{padding:5px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--paper);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;}
+  .eval-choice-btn.sel{background:var(--leaf);border-color:var(--leaf);color:#fff;}
+  .eval-choice-btn.sel-ghost{background:var(--cream);border-color:var(--line);color:var(--soil);opacity:0.6;}
+  .eval-custom{margin-top:4px;}
   .float-btn{
     position:fixed;left:16px;width:40px;height:40px;border-radius:50%;
     background:var(--paper);border:1px solid var(--line);color:var(--ink);

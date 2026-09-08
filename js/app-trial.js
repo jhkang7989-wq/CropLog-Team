@@ -224,9 +224,11 @@ let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
 function switchDetailTab(tab){
   if(tab!=='timeline') exitTimelineSelectMode();
   document.getElementById('detailTabTimeline').classList.toggle('active', tab==='timeline');
+  document.getElementById('detailTabEval').classList.toggle('active', tab==='eval');
   document.getElementById('detailTabMemo').classList.toggle('active', tab==='memo');
   document.getElementById('detailTabCompare').classList.toggle('active', tab==='compare');
   document.getElementById('detailPanelTimeline').classList.toggle('hidden', tab!=='timeline');
+  document.getElementById('detailPanelEval').classList.toggle('hidden', tab!=='eval');
   document.getElementById('detailPanelMemo').classList.toggle('hidden', tab!=='memo');
   document.getElementById('detailPanelCompare').classList.toggle('hidden', tab!=='compare');
 }
@@ -312,6 +314,7 @@ async function renderDetail(trialId){
   initTimelineDelegation();
 
   await renderNotes(trialId);
+  await renderEvalHistory(trialId);
   exitSavedCmpSelectMode('detail');
   await renderSavedComparisons('detail', trialId);
 }
