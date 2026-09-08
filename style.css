@@ -222,7 +222,7 @@
   #app{position:relative;}
   #app.modal-lock main{ overflow:hidden !important; }
 
-  .field{margin-bottom:14px;}
+  .field{margin-bottom:14px;position:relative;}
   .field-row{display:grid;grid-template-columns:repeat(auto-fit, minmax(0,1fr));gap:8px;align-items:start;}
   .field-row .field{min-width:0;}
   .field-row input[type=date], .field-row input[type=time]{font-size:12.5px;padding-left:8px;padding-right:4px;}
@@ -456,6 +456,7 @@
   .dd-row{display:flex;justify-content:flex-start;align-items:center;gap:8px;padding:8px 0;font-size:12px;color:var(--muted);font-weight:600;}
   .dd-row+.dd-row{border-top:1px solid var(--line);}
   .dd-row b{color:var(--ink);font-weight:800;font-size:12.5px;}
+  .grower-memo{background:var(--cream);border-radius:9px;padding:11px 13px;font-size:12.5px;color:var(--soil);line-height:1.6;white-space:pre-wrap;}
   .detail-address{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);font-weight:700;border-left:3px solid var(--leaf);padding:9px 6px 9px 12px;}
   .detail-address+.detail-address{border-top:1px solid var(--line);}
   #detailDates:not(.hidden)+#detailAddressList .detail-address:first-child{border-top:1px solid var(--line);}
@@ -463,6 +464,18 @@
   .addr-input-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
   .addr-input-row input{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;}
   .addr-remove{white-space:nowrap;color:var(--danger);}
+
+  /* ---- 농가 검색형 선택(그로워 피커) — 시교 등록/수정 성함칸 ---- */
+  .grower-suggest{
+    position:absolute;left:0;right:0;top:100%;margin-top:2px;
+    background:var(--paper);border:1px solid var(--line);border-radius:9px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.12);overflow:hidden;z-index:30;
+  }
+  .grower-suggest-row{padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:1px;}
+  .grower-suggest-row:active{background:var(--cream);}
+  .grower-suggest-row + .grower-suggest-row{border-top:1px solid var(--line);}
+  .grower-suggest-row .gs-name{font-size:13.5px;font-weight:700;color:var(--ink);}
+  .grower-suggest-row .gs-sub{font-size:11px;color:var(--muted);}
   .detail-address .addr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .float-btn{
     position:fixed;left:16px;width:40px;height:40px;border-radius:50%;

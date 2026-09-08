@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 56;
+const APP_VERSION = 57;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -55,6 +55,7 @@ async function fetchCropsCached(force){
 function idbGetAllByIndex(store, indexName, value){
   if(store==='photos' && indexName==='trialId') return apiFetch(`/api/trials/${value}/photos`);
   if(store==='notes' && indexName==='trialId') return apiFetch(`/api/trials/${value}/notes`);
+  if(store==='trials' && indexName==='growerId') return apiFetch(`/api/growers/${value}/trials`);
   return Promise.resolve([]);
 }
 // schedules/date에 IDBKeyRange를 쓰던 걸 from/to/date 쿼리로 변환
@@ -71,6 +72,7 @@ function idbGetAllByRange(store, indexName, range){
 function idbGetAll(store){
   if(store==='crops') return fetchCropsCached();
   if(store==='trials') return apiFetch('/api/trials?limit=200').then(r=>r.items);
+  if(store==='growers') return apiFetch('/api/growers');
   return Promise.resolve([]);
 }
 async function idbGet(store, key){
@@ -81,6 +83,7 @@ async function idbGet(store, key){
   if(store==='notes') return apiFetch(`/api/notes/${key}`).catch(()=>undefined);
   if(store==='comparisons') return apiFetch(`/api/comparisons/${key}`).catch(()=>undefined);
   if(store==='schedules') return apiFetch(`/api/schedules/${key}`).catch(()=>undefined);
+  if(store==='growers') return apiFetch(`/api/growers/${key}`).catch(()=>undefined);
   if(store==='meta') return getLocalMeta(key);
   return undefined;
 }
@@ -89,6 +92,7 @@ function idbPut(store, val){
   if(store==='trials') return apiJson('/api/trials', 'POST', val);
   if(store==='schedules') return apiJson('/api/schedules', 'POST', val);
   if(store==='notes') return apiJson(`/api/trials/${val.trialId}/notes`, 'POST', val);
+  if(store==='growers') return apiJson('/api/growers', 'POST', val);
   if(store==='meta') return Promise.resolve(setLocalMeta(val));
   // photos/comparisons는 파일 업로드가 껴서 각자 전용 함수(uploadPhoto 등)로 처리 — 여기로 오면 안 됨
   console.error('idbPut: 지원 안 하는 store', store, val);
@@ -101,7 +105,13 @@ function idbDelete(store, key){
   if(store==='comparisons') return apiFetch(`/api/comparisons/${key}`, { method:'DELETE' });
   if(store==='schedules') return apiFetch(`/api/schedules/${key}`, { method:'DELETE' });
   if(store==='crops') return apiFetch(`/api/crops/${key}`, { method:'DELETE' }).then(r=>{ _cropsCache=null; return r; });
+  if(store==='growers') return apiFetch(`/api/growers/${key}`, { method:'DELETE' });
   return Promise.resolve(true);
+}
+// 농가 검색 — growers 목록 화면과 성함 자동완성(아래 그로워 피커)이 함께 씀.
+function fetchGrowers(q){
+  const query = q ? `?q=${encodeURIComponent(q)}` : '';
+  return apiFetch(`/api/growers${query}`);
 }
 // 시교 삭제 시 서버가 사진/메모/비교뷰/일정까지 한 번에 정리(R2 파일 포함)해주므로
 // 예전처럼 idbDeleteWhere로 미리 하나씩 지울 필요가 없어짐 — 호출부에서 idbDelete('trials', id)만 하면 됨.
@@ -257,6 +267,7 @@ function textColorFor(bgHex){
 
 /* ================= 라우팅 ================= */
 let currentTrialId = null;
+let currentGrowerId = null;
 let currentFieldAddresses = [];
 const MAX_ADDRESSES = 5;
 function addAddressField(prefix, value){
@@ -287,6 +298,68 @@ function resetAddressFields(prefix, values){
 function getAddressValues(prefix){
   const list = document.getElementById(`${prefix}AddressList`);
   return Array.from(list.querySelectorAll('input')).map(i=>i.value.trim()).filter(Boolean);
+}
+
+/* ================= 농가 검색형 선택(그로워 피커) =================
+   시교 등록/수정의 "성함" 입력칸에서 씀. 품종이 다양해 탭 나열이 안 되는 것처럼
+   농가도 수가 늘면 목록 선택이 안 되므로, 타이핑하면 기존 농가를 검색해 보여주고
+   고르면 그 농가로 연결한다. 새 이름을 그대로 저장하면(주소 등록 없이도) 오타로
+   같은 사람이 갈라지지 않도록, 저장 시점에 정확히 같은 이름의 농가가 있으면 그걸
+   재사용하고 없을 때만 새 농가를 만든다(resolveGrowerPicker). */
+const _growerPicker = {};
+function initGrowerPicker(inputId, boxId, initialId, initialName){
+  _growerPicker[inputId] = { selectedId: initialId || null, selectedName: initialName || '', matches: [] };
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(boxId);
+  if(!input || !box) return;
+  let debounceTimer = null;
+  input.oninput = () => {
+    const val = input.value;
+    // 선택해뒀던 이름과 달라지면 그 선택은 무효(다시 새 이름 취급)
+    if(_growerPicker[inputId].selectedName !== val) _growerPicker[inputId].selectedId = null;
+    clearTimeout(debounceTimer);
+    const q = val.trim();
+    if(!q){ box.classList.add('hidden'); box.innerHTML=''; return; }
+    debounceTimer = setTimeout(async () => {
+      let matches = [];
+      try{ matches = await fetchGrowers(q); }catch(e){ return; }
+      matches = matches.slice(0,5);
+      _growerPicker[inputId].matches = matches;
+      if(!matches.length){ box.classList.add('hidden'); box.innerHTML=''; return; }
+      box.innerHTML = matches.map((g,i)=>`
+        <div class="grower-suggest-row" onmousedown="pickGrowerSuggestion('${inputId}','${boxId}',${i})">
+          <span class="gs-name">${escapeHtml(g.name)}</span>
+          <span class="gs-sub">${escapeHtml([g.regionSigun, g.trialCount?`시교 ${g.trialCount}건`:''].filter(Boolean).join(' · '))}</span>
+        </div>`).join('');
+      box.classList.remove('hidden');
+    }, 200);
+  };
+  // onmousedown(위)으로 클릭을 먼저 처리하고, blur는 그 다음이라 목록이 안 사라진 채로 클릭됨
+  input.onblur = () => { box.classList.add('hidden'); };
+}
+function pickGrowerSuggestion(inputId, boxId, idx){
+  const g = _growerPicker[inputId].matches[idx];
+  if(!g) return;
+  document.getElementById(inputId).value = g.name;
+  _growerPicker[inputId].selectedId = g.id;
+  _growerPicker[inputId].selectedName = g.name;
+  document.getElementById(boxId).classList.add('hidden');
+}
+// 시교 저장 시점에 호출: 골라둔 농가가 있으면 그 id를, 없으면 정확히 같은 이름의
+// 기존 농가를 재사용하거나 새로 만들어서 id를 돌려준다. 입력이 비어있으면 null.
+async function resolveGrowerPicker(inputId){
+  const input = document.getElementById(inputId);
+  const name = (input.value || '').trim();
+  if(!name) return { growerId: null, growerName: null };
+  const state = _growerPicker[inputId];
+  if(state && state.selectedId && state.selectedName === name){
+    return { growerId: state.selectedId, growerName: name };
+  }
+  const matches = await fetchGrowers(name);
+  const exact = matches.find(g=>g.name===name);
+  if(exact) return { growerId: exact.id, growerName: exact.name };
+  const created = await idbPut('growers', {name});
+  return { growerId: created.id, growerName: created.name };
 }
 function copyFieldAddress(idx){
   const addr = currentFieldAddresses[idx];

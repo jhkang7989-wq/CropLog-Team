@@ -11,6 +11,7 @@ async function renderNewTrialForm(){
   document.getElementById('ntName').value='';
   document.getElementById('ntRegion').value='';
   document.getElementById('ntGrowerName').value='';
+  initGrowerPicker('ntGrowerName', 'ntGrowerSuggest');
   document.getElementById('ntSowDate').value='';
   document.getElementById('ntTransplantDate').value='';
   document.getElementById('ntReferenceVariety').value='';
@@ -58,12 +59,17 @@ async function createTrial(){
   const seg = document.getElementById('ntSeg').value.trim();
   const name = document.getElementById('ntName').value.trim();
   const region = document.getElementById('ntRegion').value.trim();
-  const growerName = document.getElementById('ntGrowerName').value.trim();
   const sowDate = document.getElementById('ntSowDate').value;
   const transplantDate = document.getElementById('ntTransplantDate').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('nt');
   if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
+
+  let growerId = null, growerName = null;
+  try{
+    const resolved = await resolveGrowerPicker('ntGrowerName');
+    growerId = resolved.growerId; growerName = resolved.growerName;
+  }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
 
   let cropId = selectedCropId;
   if(useCustomCrop){
@@ -77,7 +83,7 @@ async function createTrial(){
 
   const id = uid();
   const now = Date.now();
-  await idbPut('trials', {id, cropId, seg, name, region, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
+  await idbPut('trials', {id, cropId, seg, name, region, growerId, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -114,7 +120,8 @@ async function openTrialEditModal(){
         </div>
         <div class="field">
           <label>성함</label>
-          <input type="text" id="editTrialGrowerName" value="${t.growerName||''}" placeholder="예: 송재호">
+          <input type="text" id="editTrialGrowerName" value="${t.growerName||''}" placeholder="예: 송재호" autocomplete="off">
+          <div id="editTrialGrowerSuggest" class="grower-suggest hidden"></div>
         </div>
       </div>
       <div class="field-row">
@@ -144,22 +151,27 @@ async function openTrialEditModal(){
   attachBackdropDismiss(backdrop);
   const existingAddresses = (t.fieldAddresses && t.fieldAddresses.length) ? t.fieldAddresses : (t.fieldAddress ? [t.fieldAddress] : []);
   resetAddressFields('editTrial', existingAddresses);
+  initGrowerPicker('editTrialGrowerName', 'editTrialGrowerSuggest', t.growerId, t.growerName);
 }
 async function saveTrialEdit(){
   const cropId = document.getElementById('editTrialCrop').value;
   const seg = document.getElementById('editTrialSeg').value.trim();
   const name = document.getElementById('editTrialName').value.trim();
   const region = document.getElementById('editTrialRegion').value.trim();
-  const growerName = document.getElementById('editTrialGrowerName').value.trim();
   const sowDate = document.getElementById('editTrialSowDate').value;
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('editTrial');
   if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
+  let growerId = null, growerName = null;
+  try{
+    const resolved = await resolveGrowerPicker('editTrialGrowerName');
+    growerId = resolved.growerId; growerName = resolved.growerName;
+  }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
   const pin = await promptPin({title:'시교 수정', message:'본인이 등록한 시교만 수정할 수 있어요. PIN을 입력해주세요.'});
   if(pin===null) return;
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerId = growerId; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
   delete t.fieldAddress;
   try{
     await withPin(pin, ()=> idbPut('trials', t));

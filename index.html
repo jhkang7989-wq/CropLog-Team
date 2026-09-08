@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-title" content="CropLog">
 <link rel="apple-touch-icon" href="icon-192.png?v=6">
 <link rel="icon" href="icon-192.png?v=6">
-<link rel="stylesheet" href="style.css?v=56">
+<link rel="stylesheet" href="style.css?v=57">
 </head>
 <body>
 <div id="app">
@@ -76,12 +76,14 @@
     <header class="topbar">
       <span style="width:24px;"></span>
       <h1>농가</h1>
-      <span style="width:24px;"></span>
+      <button class="action header-add" onclick="openGrowerEditModal()" aria-label="새 농가 등록">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
     </header>
     <main>
       <div class="search-box">
         <svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><line x1="20" y1="20" x2="15.5" y2="15.5"/></svg>
-        <input id="growerSearchInput" type="text" placeholder="성함 · 지역 · 품목 검색" oninput="renderGrowerList()">
+        <input id="growerSearchInput" type="text" placeholder="성함 · 지역 · 연락처 검색" oninput="renderGrowerList()">
       </div>
       <div id="growerCount" class="list-count"></div>
       <div id="growerList"></div>
@@ -93,12 +95,20 @@
     <header class="topbar topbar-stack">
       <div class="topbar-row">
         <button class="back" onclick="go('growers')">‹ 농가</button>
-        <span style="width:24px;"></span>
+        <div class="topbar-actions">
+          <button class="action" onclick="openGrowerEditModal(currentGrowerId)"><svg width="16" height="16" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z"/><line x1="13" y1="6" x2="18" y2="11"/></svg></button>
+          <button class="action" onclick="deleteGrowerConfirm()"><svg width="17" height="17" viewBox="0 0 24 24" style="vertical-align:-3px;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+        </div>
       </div>
       <h1 id="growerTitle">농가</h1>
     </header>
     <main>
       <div id="growerStats" class="detail-stats"></div>
+      <div id="growerInfoCard" class="detail-dates hidden"></div>
+      <div id="growerMemoSection" class="hidden">
+        <div class="section-title">비고</div>
+        <div id="growerMemo" class="grower-memo"></div>
+      </div>
       <div id="growerAddrSection" class="hidden">
         <div class="section-title">밭 주소</div>
         <div id="growerAddrList"></div>
@@ -251,7 +261,8 @@
         </div>
         <div class="field">
           <label>성함</label>
-          <input type="text" id="ntGrowerName" placeholder="예: 송재호">
+          <input type="text" id="ntGrowerName" placeholder="예: 송재호" autocomplete="off">
+          <div id="ntGrowerSuggest" class="grower-suggest hidden"></div>
         </div>
       </div>
       <div class="field-row">
@@ -482,14 +493,14 @@
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18,15 12,9 6,15"/></svg>
 </div>
 
-<script src="js/app-core.js?v=56"></script>
-<script src="js/app-home.js?v=56"></script>
-<script src="js/app-growers.js?v=56"></script>
-<script src="js/app-trial.js?v=56"></script>
-<script src="js/app-compare.js?v=56"></script>
-<script src="js/app-compare-save.js?v=56"></script>
-<script src="js/app-photo-mark.js?v=56"></script>
-<script src="js/app-export.js?v=56"></script>
-<script src="js/app-auth.js?v=56"></script>
+<script src="js/app-core.js?v=57"></script>
+<script src="js/app-home.js?v=57"></script>
+<script src="js/app-growers.js?v=57"></script>
+<script src="js/app-trial.js?v=57"></script>
+<script src="js/app-compare.js?v=57"></script>
+<script src="js/app-compare-save.js?v=57"></script>
+<script src="js/app-photo-mark.js?v=57"></script>
+<script src="js/app-export.js?v=57"></script>
+<script src="js/app-auth.js?v=57"></script>
 </body>
 </html>
