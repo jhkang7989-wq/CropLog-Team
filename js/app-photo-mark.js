@@ -901,15 +901,21 @@ async function nativeShareBlob(blob, filename, title){
   }
 }
 async function downloadBlob(photoId){
-  const p = await idbGet('photos', photoId);
-  const blob = await fetchPhotoBlob(photoId);
+  let p, blob;
+  try{
+    p = await idbGet('photos', photoId);
+    blob = await fetchPhotoBlob(photoId);
+  }catch(e){ showStorageError(e); return; }
   if(isNativeApp()){ await nativeShareBlob(blob, `${p.date}.jpg`, '사진 저장'); return; }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `${p.date}.jpg`; a.click();
 }
 async function shareBlob(photoId){
-  const p = await idbGet('photos', photoId);
-  const blob = await fetchPhotoBlob(photoId);
+  let p, blob;
+  try{
+    p = await idbGet('photos', photoId);
+    blob = await fetchPhotoBlob(photoId);
+  }catch(e){ showStorageError(e); return; }
   if(isNativeApp()){ await nativeShareBlob(blob, `${p.date}.jpg`, '작황 사진'); return; }
   const file = new File([blob], `${p.date}.jpg`, {type:blob.type||'image/jpeg'});
   if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
