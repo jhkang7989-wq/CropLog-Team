@@ -14,6 +14,8 @@ async function renderNewTrialForm(){
   initGrowerPicker('ntGrowerName', 'ntGrowerSuggest');
   document.getElementById('ntSowDate').value='';
   document.getElementById('ntTransplantDate').value='';
+  document.getElementById('ntSeason').value = new Date().getFullYear();
+  document.getElementById('ntStatus').value = 'active';
   document.getElementById('ntReferenceVariety').value='';
   resetAddressFields('nt');
   document.getElementById('customCropName').value='';
@@ -61,6 +63,8 @@ async function createTrial(){
   const region = document.getElementById('ntRegion').value.trim();
   const sowDate = document.getElementById('ntSowDate').value;
   const transplantDate = document.getElementById('ntTransplantDate').value;
+  const season = document.getElementById('ntSeason').value.trim();
+  const status = document.getElementById('ntStatus').value;
   const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('nt');
   if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
@@ -83,7 +87,7 @@ async function createTrial(){
 
   const id = uid();
   const now = Date.now();
-  await idbPut('trials', {id, cropId, seg, name, region, growerId, growerName, sowDate, transplantDate, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
+  await idbPut('trials', {id, cropId, seg, name, region, growerId, growerName, sowDate, transplantDate, season, status, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
   await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
   toast('시교가 등록됐어요');
   go('upload', id);
@@ -134,6 +138,21 @@ async function openTrialEditModal(){
           <input type="date" id="editTrialTransplantDate" value="${t.transplantDate||''}">
         </div>
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label>시즌</label>
+          <input type="number" id="editTrialSeason" value="${t.season||''}" placeholder="예: 2026" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>상태</label>
+          <select id="editTrialStatus">
+            <option value="active" ${t.status==='active'?'selected':''}>진행중</option>
+            <option value="planned" ${t.status==='planned'?'selected':''}>예정</option>
+            <option value="done" ${t.status==='done'?'selected':''}>완료</option>
+            <option value="stopped" ${t.status==='stopped'?'selected':''}>중단</option>
+          </select>
+        </div>
+      </div>
       <div class="field">
         <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
         <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 칼라탄">
@@ -160,6 +179,8 @@ async function saveTrialEdit(){
   const region = document.getElementById('editTrialRegion').value.trim();
   const sowDate = document.getElementById('editTrialSowDate').value;
   const transplantDate = document.getElementById('editTrialTransplantDate').value;
+  const season = document.getElementById('editTrialSeason').value.trim();
+  const status = document.getElementById('editTrialStatus').value;
   const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
   const fieldAddresses = getAddressValues('editTrial');
   if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
@@ -171,7 +192,7 @@ async function saveTrialEdit(){
   const pin = await promptPin({title:'시교 수정', message:'본인이 등록한 시교만 수정할 수 있어요. PIN을 입력해주세요.'});
   if(pin===null) return;
   const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerId = growerId; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
+  t.cropId = cropId; t.seg = seg; t.name = name; t.region = region; t.growerId = growerId; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.season = season; t.status = status; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
   delete t.fieldAddress;
   try{
     await withPin(pin, ()=> idbPut('trials', t));

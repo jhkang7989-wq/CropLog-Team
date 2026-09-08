@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 59;
+const APP_VERSION = 60;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -69,9 +69,23 @@ function idbGetAllByRange(store, indexName, range){
   }
   return Promise.resolve([]);
 }
+async function fetchAllTrials(){
+  // 서버는 커서 기반 페이지네이션을 지원하는데(한 번에 최대 200건), 예전 프론트는
+  // 첫 페이지만 받고 끝내서 시교가 200건을 넘으면 201번째부터 조용히 안 보이는
+  // 문제가 있었다. 지금은 시교 수가 적어서 화면마다 "더 보기" 스크롤 UI를 만들
+  // 필요는 없다고 보고, 여기서 nextCursor를 따라가며 전체를 모아서 돌려준다.
+  let all = [], cursor = null;
+  do {
+    const q = cursor ? `?limit=200&cursor=${cursor}` : '?limit=200';
+    const r = await apiFetch(`/api/trials${q}`);
+    all = all.concat(r.items);
+    cursor = r.nextCursor;
+  } while(cursor);
+  return all;
+}
 function idbGetAll(store){
   if(store==='crops') return fetchCropsCached();
-  if(store==='trials') return apiFetch('/api/trials?limit=200').then(r=>r.items);
+  if(store==='trials') return fetchAllTrials();
   if(store==='growers') return apiFetch('/api/growers');
   return Promise.resolve([]);
 }
@@ -260,6 +274,13 @@ async function ensurePresetCrops(){
       await idbPut('crops', {id:'preset-'+p.name, name:p.name, color:p.color});
     }
   }
+}
+/* ================= 시교 상태 ================= */
+const STATUS_LABELS = {planned:'예정', active:'진행중', done:'완료', stopped:'중단'};
+// 진행중(active)은 기본값이라 목록에 따로 표시 안 함 — 예정/완료/중단만 눈에 띄게.
+function statusBadgeHtml(status){
+  if(!status || status==='active') return '';
+  return `<span class="status-tag ${status}">${STATUS_LABELS[status]||status}</span>`;
 }
 function textColorFor(bgHex){
   // 밝은 배경(흰색, 노란색 등)엔 어두운 글씨, 아니면 흰 글씨

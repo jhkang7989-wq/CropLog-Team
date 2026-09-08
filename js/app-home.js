@@ -11,12 +11,14 @@ function toggleHomeCropGroup(cropId){
 async function renderHome(){
   const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
-  const trials = await idbGetAll('trials');
+  // 홈은 진행중인 시교만 보여줌 — 완료·중단·예정 건까지 다 섞이면 연차가 쌓일수록
+  // 목록이 무한정 길어지므로, 그런 건 시교 탭(전체목록)에서 상태 필터로 찾아보게 함.
+  const trials = (await idbGetAll('trials')).filter(t=> !t.status || t.status==='active');
 
   // 전체 시교 - 품목별 아코디언
   const recentList = document.getElementById('recentList');
   if(trials.length===0){
-    recentList.innerHTML = '<p class="empty">등록된 시교가 없어요. 우측 하단 + 로 새 시교를 등록해보세요.</p>';
+    recentList.innerHTML = '<p class="empty">진행중인 시교가 없어요. 우측 하단 + 로 새 시교를 등록해보세요.</p>';
   } else {
     const grouped = {};
     trials.forEach(t=>{ (grouped[t.cropId]=grouped[t.cropId]||[]).push(t); });
@@ -56,19 +58,38 @@ async function renderHome(){
   document.getElementById('searchResults').classList.add('hidden');
   document.getElementById('recentSection').classList.remove('hidden');
 }
+let currentAllListSort = 'recent';
 async function renderAllList(sortMode){
-  sortMode = sortMode || 'recent';
+  if(sortMode) currentAllListSort = sortMode;
+  sortMode = currentAllListSort;
   const tabIds = { recent:'allListSortRecent', name:'allListSortName', crop:'allListSortCrop' };
   Object.entries(tabIds).forEach(([m,id])=>{
     document.getElementById(id).classList.toggle('active', m===sortMode);
   });
   const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
-  const trials = await idbGetAll('trials');
-  document.getElementById('allListCount').textContent = `총 ${trials.length}개의 시교`;
+  const allTrials = await idbGetAll('trials');
+
+  // 시즌 필터 옵션은 실제 등록된 시즌만, 최신 연도부터
+  const seasonSelect = document.getElementById('allListSeasonFilter');
+  const seasons = [...new Set(allTrials.map(t=>t.season).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const prevSeasonValue = seasonSelect.value || 'all';
+  seasonSelect.innerHTML = '<option value="all">시즌: 전체</option>' + seasons.map(s=>`<option value="${s}">${s}</option>`).join('');
+  seasonSelect.value = seasons.includes(prevSeasonValue) ? prevSeasonValue : 'all';
+
+  const statusFilter = document.getElementById('allListStatusFilter').value;
+  const seasonFilter = seasonSelect.value;
+  const trials = allTrials.filter(t=>
+    (statusFilter==='all' || (t.status||'active')===statusFilter) &&
+    (seasonFilter==='all' || t.season===seasonFilter)
+  );
+
+  document.getElementById('allListCount').textContent = (statusFilter==='all' && seasonFilter==='all')
+    ? `총 ${trials.length}개의 시교`
+    : `${trials.length}개의 시교 (전체 ${allTrials.length}개 중)`;
   const contentEl = document.getElementById('allListContent');
   if(trials.length===0){
-    contentEl.innerHTML = '<p class="empty">등록된 시교가 없어요.</p>';
+    contentEl.innerHTML = '<p class="empty">조건에 맞는 시교가 없어요.</p>';
     return;
   }
   function renderItem(t){
@@ -76,7 +97,7 @@ async function renderAllList(sortMode){
     return `<div class="recent-item" onclick="go('detail','${t.id}')">
       <div class="bar" style="background:${c.color}"></div>
       <div class="info">
-        <div class="name">${trialTitle(t)}</div>
+        <div class="name">${trialTitle(t)}${statusBadgeHtml(t.status)}</div>
         <div class="sub">${c.name} · ${t.seg}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">

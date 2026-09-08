@@ -233,6 +233,9 @@
   }
   .field textarea{resize:vertical;min-height:60px;}
   .autofill-tag{display:inline-block;font-size:9px;background:var(--cream);color:var(--soil);padding:2px 7px;border-radius:4px;margin-left:6px;}
+  .status-tag{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;background:var(--cream);color:var(--muted);vertical-align:1px;}
+  .status-tag.done{color:#2C6E63;background:rgba(44,110,99,0.12);}
+  .status-tag.stopped{color:var(--danger);background:rgba(226,61,61,0.12);}
 
   /* ---- 품목 선택 타일 ---- */
   .crop-tiles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
