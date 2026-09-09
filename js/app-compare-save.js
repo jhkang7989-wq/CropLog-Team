@@ -386,7 +386,7 @@ async function renderNotes(trialId){
       <div class="list-item" style="align-items:flex-start;cursor:default;">
         <div class="info" style="flex:1;">
           <div class="sub" style="margin-bottom:3px;">${n.date}</div>
-          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
+          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
         </div>
         <div style="display:flex;gap:4px;flex:0 0 auto;">
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="copyNoteText('${n.id}')" aria-label="메모 복사">${icon('copy',15)}</button>
@@ -401,6 +401,10 @@ function copyNoteText(noteId){
   copyTextToClipboard(n && n.text, '메모를 복사했어요');
 }
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// white-space:pre-wrap로 메모를 그대로 보여주다 보니, 모바일에서 엔터를 두 번 눌러
+// 생긴 빈 줄이 카드 안에 그대로 빈 칸으로 보이는 문제가 있었다 — 화면에 보여줄 때
+// 연속된 빈 줄을 하나로 줄여서 표시한다(저장된 원본 텍스트 자체는 안 건드림).
+function collapseBlankLines(s){ return (s||'').replace(/\n{2,}/g, '\n').trim(); }
 
 function openNoteModal(noteId){
   removeIfExists('noteModal');
@@ -432,7 +436,7 @@ function openNoteModal(noteId){
 }
 async function saveNote(noteId){
   const date = document.getElementById('noteDate').value || todayStr();
-  const text = document.getElementById('noteText').value.trim();
+  const text = collapseBlankLines(document.getElementById('noteText').value);
   if(!text){ toast('메모 내용을 입력해주세요'); return; }
   const id = noteId || uid();
   try{

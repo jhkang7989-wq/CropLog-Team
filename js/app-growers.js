@@ -255,7 +255,7 @@ async function renderGrowerNotes(growerId){
       <div class="list-item" style="align-items:flex-start;cursor:default;">
         <div class="info" style="flex:1;">
           <div class="sub" style="margin-bottom:3px;">${n.date}</div>
-          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
+          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
         </div>
         <div style="display:flex;gap:4px;flex:0 0 auto;">
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="openGrowerNoteModal('${n.id}')">${icon('edit',15)}</button>
@@ -293,7 +293,7 @@ function openGrowerNoteModal(noteId){
 }
 async function saveGrowerNote(noteId){
   const date = document.getElementById('growerNoteDate').value || todayStr();
-  const text = document.getElementById('growerNoteText').value.trim();
+  const text = collapseBlankLines(document.getElementById('growerNoteText').value);
   if(!text){ toast('메모 내용을 입력해주세요'); return; }
   const id = noteId || uid();
   try{
