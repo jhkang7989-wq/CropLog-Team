@@ -175,6 +175,7 @@ async function bootApp(){
   await ensurePresetCrops();
   removeIfExists('authOverlay');
   go('home');
+  flushOfflineQueue();
   window.addEventListener('load', ()=>{
     setTimeout(()=>{ checkTodaySchedules(); }, 1200);
   });

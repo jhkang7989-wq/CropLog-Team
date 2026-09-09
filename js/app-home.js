@@ -19,6 +19,7 @@ function toggleHomeCropGroup(cropId){
   if(chev) chev.classList.toggle('open', !wasOpen);
 }
 async function renderHome(){
+  updateOfflineQueueBadge();
   const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
   // 홈은 진행중인 시교만 보여줌 — 완료·중단·예정 건까지 다 섞이면 연차가 쌓일수록

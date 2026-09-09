@@ -143,17 +143,40 @@ async function runUploadSave({requireSomething}){
   _savingUpload = true;
   toast('저장하고 있어요...');
   try{
+    let queuedCount = 0;
     if(pendingFiles.length){
       const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
-      await Promise.all(processed.map(({blob, thumbBlob})=>
-        uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date, subject: uploadSubject})
+      const trialId = currentTrialId, subject = uploadSubject;
+      const results = await Promise.allSettled(processed.map(({blob, thumbBlob})=>
+        uploadPhoto(trialId, {full: blob, thumb: thumbBlob, date, subject})
       ));
+      for(let i=0;i<results.length;i++){
+        if(results[i].status !== 'rejected') continue;
+        const err = results[i].reason;
+        // 진짜 네트워크 두절(현장 신호 없음)만 큐에 담고, 서버가 거부한 진짜 오류는
+        // 재시도해도 소용없으니 그대로 실패 처리한다.
+        if(!isNetworkError(err)) throw err;
+        await queueOfflineUpload({
+          id: uid(), trialId, subject, date,
+          full: processed[i].blob, thumb: processed[i].thumbBlob, createdAt: Date.now()
+        });
+        queuedCount++;
+      }
     }
     if(evalPayload){
-      await saveEvaluationEntry(currentTrialId, date, evalPayload);
+      try{ await saveEvaluationEntry(currentTrialId, date, evalPayload); }
+      catch(e){
+        if(!isNetworkError(e)) throw e;
+        toast('오프라인이라 평가는 저장하지 못했어요. 연결되면 다시 입력해주세요.');
+      }
     }
     await touchTrialUpdatedAt(currentTrialId);
-    toast(pendingFiles.length ? `사진 ${pendingFiles.length}장 저장됐어요` : '평가를 저장했어요');
+    if(queuedCount > 0){
+      toast(`오프라인이라 사진 ${queuedCount}장을 기기에 저장해뒀어요. 연결되면 자동으로 올라가요.`);
+    } else {
+      toast(pendingFiles.length ? `사진 ${pendingFiles.length}장 저장됐어요` : '평가를 저장했어요');
+    }
+    updateOfflineQueueBadge();
     go('detail', currentTrialId);
   }catch(e){
     showStorageError(e);
@@ -171,4 +194,46 @@ function buildDateBitsLine(t){
   if(t.sowDate) bits.push(`파종일 ${t.sowDate}`);
   if(t.transplantDate) bits.push(`정식일 ${t.transplantDate}`);
   return bits.join(' · ');
+}
+
+/* ================= 전체 시교 목록 CSV 내보내기 ================= */
+function csvEscape(v){
+  const s = (v===null || v===undefined) ? '' : String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+async function exportTrialsCsv(){
+  let trials, crops;
+  try{
+    [trials, crops] = await Promise.all([idbGetAll('trials'), idbGetAll('crops')]);
+  }catch(e){ toast('시교 목록을 불러오지 못했어요'); return; }
+  if(trials.length===0){ toast('내보낼 시교가 없어요'); return; }
+  const cropMap = Object.fromEntries(crops.map(c=>[c.id, c.name]));
+  const headers = ['품목','SEG','제품/시교명','지역','성함','대비품종','파종일','정식일','시즌','상태','등록일'];
+  const rows = trials.map(t => [
+    cropMap[t.cropId] || '',
+    t.seg || '',
+    t.name || '',
+    t.region || '',
+    t.growerName || '',
+    t.referenceVariety || '',
+    t.sowDate || '',
+    t.transplantDate || '',
+    t.season || '',
+    STATUS_LABELS[t.status] || t.status || '',
+    t.createdAt ? new Date(t.createdAt).toISOString().slice(0,10) : ''
+  ]);
+  // 엑셀에서 한글이 안 깨지고 열리도록 UTF-8 BOM을 앞에 붙인다.
+  const csv = '\uFEFF' + [headers, ...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  // 파일명에 한글이 들어가면 일부 브라우저가 확장자 없는 "download"로 저장해버려서
+  // 엑셀이 못 여는 경우가 있었다 — 파일명은 영문/숫자만 쓰고, 내용(CSV 본문)은 그대로 한글.
+  a.download = `croplog_trials_${todayStr()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  toast('CSV 파일을 내보냈어요');
 }

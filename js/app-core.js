@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 69;
+const APP_VERSION = 70;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -210,6 +210,92 @@ function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(
 async function touchTrialUpdatedAt(trialId){
   try{ await apiFetch(`/api/trials/${trialId}/touch`, { method:'POST' }); }catch(e){}
 }
+
+/* ================= 오프라인 업로드 큐 =================
+   현장은 신호가 안 터지는 곳이 많아서, 사진 저장 중 네트워크가 아예 안 되면
+   사진(블롭)을 기기의 진짜 IndexedDB(서버 API를 흉내내는 idb* 함수들과는 별개)에
+   그대로 저장해뒀다가, 연결되면 자동으로 다시 올린다. 서버가 응답은 하는데 거부한
+   경우(400 등 진짜 오류)는 재시도해도 소용없으니 큐에 안 넣는다 — apiFetch는 그럴 때
+   .status를 붙여서 던지고, fetch 자체가 실패(오프라인/DNS)하면 status 없는 에러를
+   던지므로 그걸로 구분한다. */
+function isNetworkError(e){
+  return !!e && !e.status;
+}
+const OFFLINE_DB_NAME = 'croplog_offline_queue';
+const OFFLINE_STORE = 'uploads';
+function openOfflineDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(OFFLINE_DB_NAME, 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore(OFFLINE_STORE, {keyPath:'id'}); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function queueOfflineUpload(item){
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    tx.objectStore(OFFLINE_STORE).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getQueuedUploads(){
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(OFFLINE_STORE, 'readonly');
+    const req = tx.objectStore(OFFLINE_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function removeQueuedUpload(id){
+  const db = await openOfflineDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(OFFLINE_STORE, 'readwrite');
+    tx.objectStore(OFFLINE_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function updateOfflineQueueBadge(){
+  const banner = document.getElementById('offlineQueueBanner');
+  if(!banner) return;
+  let items;
+  try{ items = await getQueuedUploads(); }catch(e){ return; }
+  if(items.length){
+    document.getElementById('offlineQueueBannerText').textContent = `사진 ${items.length}장 업로드 대기 중 · 눌러서 다시 시도`;
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+let _flushingOfflineQueue = false;
+async function flushOfflineQueue(){
+  if(_flushingOfflineQueue) return;
+  _flushingOfflineQueue = true;
+  try{
+    let items;
+    try{ items = await getQueuedUploads(); }catch(e){ return; }
+    if(!items.length) return;
+    let uploaded = 0;
+    for(const item of items){
+      try{
+        await uploadPhoto(item.trialId, {full:item.full, thumb:item.thumb, date:item.date, subject:item.subject});
+        await removeQueuedUpload(item.id);
+        uploaded++;
+      }catch(e){
+        if(isNetworkError(e)) break; // 아직 오프라인 — 나머지는 다음 기회에
+        await removeQueuedUpload(item.id); // 서버가 거부하는 진짜 오류면 큐에 남겨도 소용없음
+      }
+    }
+    if(uploaded>0) toast(`대기 중이던 사진 ${uploaded}장을 업로드했어요`);
+  } finally {
+    _flushingOfflineQueue = false;
+    updateOfflineQueueBadge();
+  }
+}
+window.addEventListener('online', flushOfflineQueue);
 function photoFileUrl(id){ return `${API_BASE}/api/photos/${id}/file?pw=${encodeURIComponent(getAppPassword())}`; }
 function photoThumbUrl(id){ return `${API_BASE}/api/photos/${id}/thumb?pw=${encodeURIComponent(getAppPassword())}`; }
 function comparisonFileUrl(id){ return `${API_BASE}/api/comparisons/${id}/file?pw=${encodeURIComponent(getAppPassword())}`; }
