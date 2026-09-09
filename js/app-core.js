@@ -162,7 +162,7 @@ function setLocalMeta(val){
 }
 
 /* ---- 사진: 실제 파일 업로드가 껴 있어서 idbPut과 별도 함수로 ---- */
-async function uploadPhoto(trialId, {full, thumb, date, isMarked, originalPhotoId, markNote}){
+async function uploadPhoto(trialId, {full, thumb, date, isMarked, originalPhotoId, markNote, subject}){
   const form = new FormData();
   form.append('full', full, 'full.jpg');
   form.append('thumb', thumb, 'thumb.jpg');
@@ -170,6 +170,7 @@ async function uploadPhoto(trialId, {full, thumb, date, isMarked, originalPhotoI
   if(isMarked) form.append('isMarked', '1');
   if(originalPhotoId) form.append('originalPhotoId', originalPhotoId);
   if(markNote) form.append('markNote', markNote);
+  if(subject) form.append('subject', subject);
   return apiFetch(`/api/trials/${trialId}/photos`, { method:'POST', body: form });
 }
 async function rotatePhotoOnServer(photoId, full, thumb){

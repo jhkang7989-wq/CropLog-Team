@@ -535,7 +535,8 @@ async function saveMarking(){
   try{
     await uploadPhoto(original.trialId, {
       full: blob, thumb: thumbBlob, date: original.date,
-      isMarked:true, originalPhotoId: markState.photoId, markNote: comment||''
+      isMarked:true, originalPhotoId: markState.photoId, markNote: comment||'',
+      subject: original.subject || 'own'
     });
     await touchTrialUpdatedAt(original.trialId);
     toast('마킹한 사진을 저장했어요');
