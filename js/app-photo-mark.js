@@ -21,6 +21,7 @@ async function openMarkingEditor(photoId){
           <button class="mark-tool" data-tool="circle" onclick="setMarkTool('circle',this)">${icon('circleTool',17)}</button>
           <button class="mark-tool" data-tool="arrow" onclick="setMarkTool('arrow',this)">${icon('arrowTool',17)}</button>
           <button class="mark-tool" data-tool="text" onclick="setMarkTool('text',this)">${icon('textTool',17)}</button>
+          <button class="mark-tool" data-tool="eraser" onclick="setMarkTool('eraser',this)">${icon('eraser',17)}</button>
           <button class="mark-tool" onclick="undoMarkShape()">${icon('undo',17)}</button>
         </div>
         <div class="mark-colors">
@@ -34,6 +35,9 @@ async function openMarkingEditor(photoId){
   document.body.appendChild(overlay);
 
   const img = new Image();
+  // crossOrigin을 안 걸어두면 사진 서버가 다른 도메인이라 캔버스가 "오염"돼서
+  // canvas.toBlob()이 그냥 실패한다(마킹 저장이 안 되는 원인) — CORS 모드로 받아온다.
+  img.crossOrigin = 'anonymous';
   img.onload = ()=> initMarkCanvas(img, photoId);
   img.src = getPhotoUrl(p);
 }
@@ -119,6 +123,51 @@ function getMarkPoint(e, canvas){
   const t = e.touches && e.touches[0] ? e.touches[0] : e;
   return { x: t.clientX-rect.left, y: t.clientY-rect.top };
 }
+// 지우개는 이번 편집 세션에서 새로 그린 항목만 지울 수 있다 — 예전에 저장돼서
+// 사진 픽셀에 이미 박힌 마킹은 도형 데이터가 없어서 콕 집어 지울 수가 없다
+// (그건 옵션 B: 마킹을 사진과 별도로 저장해야 가능 — 지금은 안 하기로 함).
+const ERASE_HIT_TOLERANCE = 14;
+function distToSegment(px,py, x1,y1,x2,y2){
+  const dx=x2-x1, dy=y2-y1;
+  const lenSq = dx*dx+dy*dy;
+  let t = lenSq ? ((px-x1)*dx+(py-y1)*dy)/lenSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px-(x1+t*dx), py-(y1+t*dy));
+}
+function hitTestShape(sh, pt){
+  if(sh.type==='pen'){
+    for(let i=0;i<sh.points.length-1;i++){
+      if(distToSegment(pt.x,pt.y, sh.points[i].x,sh.points[i].y, sh.points[i+1].x,sh.points[i+1].y) <= ERASE_HIT_TOLERANCE) return true;
+    }
+    return sh.points.length===1 && Math.hypot(pt.x-sh.points[0].x, pt.y-sh.points[0].y) <= ERASE_HIT_TOLERANCE;
+  }
+  if(sh.type==='circle'){
+    const r = Math.hypot(sh.x2-sh.x1, sh.y2-sh.y1);
+    const d = Math.hypot(pt.x-sh.x1, pt.y-sh.y1);
+    return Math.abs(d-r) <= ERASE_HIT_TOLERANCE || d <= ERASE_HIT_TOLERANCE;
+  }
+  if(sh.type==='arrow'){
+    return distToSegment(pt.x,pt.y, sh.x1,sh.y1, sh.x2,sh.y2) <= ERASE_HIT_TOLERANCE;
+  }
+  if(sh.type==='text'){
+    const w = ((sh.text||'').length * (sh.fontSize||26) * 0.55) + 10;
+    const h = (sh.fontSize||26) + 10;
+    return Math.abs(pt.x-sh.x1) <= w/2 && Math.abs(pt.y-sh.y1) <= h/2;
+  }
+  return false;
+}
+function eraseAt(pt){
+  const shapes = markState.shapes;
+  for(let i=shapes.length-1;i>=0;i--){
+    if(hitTestShape(shapes[i], pt)){
+      shapes.splice(i,1);
+      redrawMarkCanvas();
+      if(appSettings.feedback) vibrate(10);
+      return true;
+    }
+  }
+  return false;
+}
 function attachMarkTouchHandlers(canvas){
   canvas.addEventListener('touchstart', (e)=>{
     e.preventDefault();
@@ -129,6 +178,11 @@ function attachMarkTouchHandlers(canvas){
       startTextPlacement(pt, color);
       return;
     }
+    if(tool==='eraser'){
+      markState.drawing = true;
+      if(!eraseAt(pt)) toast('지울 마킹이 없어요 — 이번에 그린 것만 지울 수 있어요');
+      return;
+    }
     markState.drawing = true;
     if(tool==='pen'){ markState.current = {type:'pen', points:[pt], color, lineWidth}; }
     else { markState.current = {type:tool, x1:pt.x, y1:pt.y, x2:pt.x, y2:pt.y, color, lineWidth}; }
@@ -137,6 +191,7 @@ function attachMarkTouchHandlers(canvas){
     if(!markState || !markState.drawing) return;
     e.preventDefault();
     const pt = getMarkPoint(e, canvas);
+    if(markState.tool==='eraser'){ eraseAt(pt); return; }
     if(markState.tool==='pen'){ markState.current.points.push(pt); }
     else { markState.current.x2 = pt.x; markState.current.y2 = pt.y; }
     redrawMarkCanvas();
@@ -144,6 +199,7 @@ function attachMarkTouchHandlers(canvas){
   canvas.addEventListener('touchend', ()=>{
     if(!markState || !markState.drawing) return;
     markState.drawing = false;
+    if(markState.tool==='eraser') return;
     if(markState.current){
       if(markState.tool==='pen'){
         markState.shapes.push(markState.current);
@@ -168,9 +224,11 @@ function getMarkShapeCenter(sh){
 }
 function computeSnap(centerX, centerY){
   const targets = (markState.shapes||[]).filter(s=>s.type!=='pen');
+  // 다른 마킹끼리 정렬뿐 아니라, 사진 자체의 정가운데(가로/세로 중앙)에도 스냅되게 —
+  // 화면 밖으로 나가는 좌표가 없게 항상 후보로 넣어둔다.
+  const centerTargets = [{ x: markState.dispW/2, y: markState.dispH/2 }, ...targets.map(getMarkShapeCenter)];
   let bestX=null, bestXDist=SNAP_THRESHOLD, bestY=null, bestYDist=SNAP_THRESHOLD;
-  targets.forEach(s=>{
-    const c = getMarkShapeCenter(s);
+  centerTargets.forEach(c=>{
     const dx = Math.abs(c.x-centerX);
     if(dx<bestXDist){ bestXDist=dx; bestX=c.x; }
     const dy = Math.abs(c.y-centerY);
@@ -514,7 +572,6 @@ async function saveMarking(){
     const ok = await showConfirm({title:'마킹 없음', message:'표시한 내용이 없어요. 그래도 저장할까요?', confirmLabel:'저장'});
     if(!ok) return;
   }
-  const original = await idbGet('photos', markState.photoId);
   const canvas = markState.canvas;
   // 타임라인 등 목록에 쓸 가벼운 썸네일도 같이 생성
   const MAX_THUMB = 380;
@@ -524,22 +581,18 @@ async function saveMarking(){
   thumbCanvas.height = Math.round(canvas.height*tscale);
   thumbCanvas.getContext('2d').drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
 
-  // 코멘트 입력 팝업에 답하길 기다리는 동안 이미지 인코딩을 동시에 진행 —
-  // 예전엔 팝업 응답을 먼저 기다린 "다음에" 인코딩을 시작해서 두 번 기다리는 구조였음
-  const [comment, blob, thumbBlob] = await Promise.all([
-    promptText({title:'코멘트 (선택)', placeholder:'예: 잎마름병 의심'}),
+  const [blob, thumbBlob] = await Promise.all([
     new Promise(res=> canvas.toBlob(res, 'image/jpeg', 0.9)),
     new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75))
   ]);
 
   try{
-    await uploadPhoto(original.trialId, {
-      full: blob, thumb: thumbBlob, date: original.date,
-      isMarked:true, originalPhotoId: markState.photoId, markNote: comment||'',
-      subject: original.subject || 'own'
-    });
-    await touchTrialUpdatedAt(original.trialId);
-    toast('마킹한 사진을 저장했어요');
+    // 새 사진을 따로 만들지 않고, 지금 열려있는 사진 자체를 마킹된 이미지로
+    // 덮어쓴다(사진 회전과 같은 API 재사용) — 그래야 나중에 다시 열어서 마킹을
+    // 추가하거나 지우개로 지울 수 있다. 예전 방식(새 사진 생성)은 다시 편집하려면
+    // 매번 사진이 하나씩 더 쌓이는 문제가 있었다.
+    await rotatePhotoOnServer(markState.photoId, blob, thumbBlob);
+    toast('마킹을 저장했어요');
     removeIfExists('markOverlay');
     closeLightbox();
     markState = null;

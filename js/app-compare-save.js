@@ -385,7 +385,7 @@ async function renderNotes(trialId){
     list.innerHTML = notes.map(n=>`
       <div class="list-item" style="display:block;cursor:default;">
         <div class="sub" style="margin-bottom:3px;">${n.date}</div>
-        <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
+        <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${formatNoteText(escapeHtml(collapseBlankLines(n.text)))}</div>
         <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:8px;">
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="copyNoteText('${n.id}')" aria-label="메모 복사">${icon('copy',15)}</button>
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="openNoteModal('${n.id}')">${icon('edit',15)}</button>
@@ -403,6 +403,32 @@ function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 // 생긴 빈 줄이 카드 안에 그대로 빈 칸으로 보이는 문제가 있었다 — 화면에 보여줄 때
 // 연속된 빈 줄을 하나로 줄여서 표시한다(저장된 원본 텍스트 자체는 안 건드림).
 function collapseBlankLines(s){ return (s||'').replace(/\n{2,}/g, '\n').trim(); }
+// 간단한 마크다운식 서식 — **굵게**, __밑줄__. 저장은 그냥 텍스트라 서버는 안 건드리고,
+// 보여줄 때만 이스케이프된 텍스트 위에 적용한다(이스케이프 먼저 → 태그 삽입 순서라 안전).
+function formatNoteText(escaped){
+  return escaped.replace(/\*\*([^\n*]+)\*\*/g, '<b>$1</b>').replace(/__([^\n_]+)__/g, '<u>$1</u>');
+}
+function wrapTextareaSelection(textareaId, marker, onChange){
+  const ta = document.getElementById(textareaId);
+  const s = ta.selectionStart, e = ta.selectionEnd, value = ta.value;
+  const selected = value.slice(s, e);
+  ta.value = value.slice(0, s) + marker + selected + marker + value.slice(e);
+  ta.focus();
+  ta.setSelectionRange(s + marker.length, e + marker.length);
+  if(onChange) onChange();
+}
+// 메모 작성 중 다른 곳으로 넘어가거나(뒤로가기 등) 실수로 닫히면 내용이 그냥
+// 사라지던 문제 — 입력할 때마다 로컬에 초안을 저장해뒀다가 다시 열면 이어서 쓰게 한다.
+function noteDraftKey(noteId){ return `cl_notedraft_t_${currentTrialId}_${noteId||'new'}`; }
+function saveNoteDraft(noteId){
+  try{ localStorage.setItem(noteDraftKey(noteId), JSON.stringify({
+    date: document.getElementById('noteDate').value, text: document.getElementById('noteText').value
+  })); }catch(e){}
+}
+function clearNoteDraft(noteId){ try{ localStorage.removeItem(noteDraftKey(noteId)); }catch(e){} }
+function loadNoteDraft(noteId){
+  try{ const raw = localStorage.getItem(noteDraftKey(noteId)); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
+}
 
 function openNoteModal(noteId){
   removeIfExists('noteModal');
@@ -413,23 +439,35 @@ function openNoteModal(noteId){
       <h3>${noteId? '메모 수정':'메모 추가'}</h3>
       <div class="field">
         <label>날짜</label>
-        <input type="date" id="noteDate" value="${todayStr()}">
+        <input type="date" id="noteDate" value="${todayStr()}" oninput="saveNoteDraft('${noteId||''}')">
       </div>
       <div class="field">
-        <label>내용</label>
-        <textarea id="noteText" placeholder="생육상태, 특이사항 등"></textarea>
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          내용
+          <span style="display:flex;gap:6px;">
+            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('noteText','**',()=>saveNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('noteText','__',()=>saveNoteDraft('${noteId||''}'))">U</button>
+          </span>
+        </label>
+        <textarea id="noteText" placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}')"></textarea>
       </div>
       <div class="btn-row">
-        ${noteId? '<button class="btn btn-ghost" onclick="cancelAction(()=>closeModal(\'noteModal\'))">취소</button>':''}
+        ${noteId? `<button class="btn btn-ghost" onclick="clearNoteDraft('${noteId}'); cancelAction(()=>closeModal('noteModal'))">취소</button>`:''}
         <button class="btn btn-primary" onclick="saveNote('${noteId||''}')">저장</button>
       </div>
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
+  const draft = loadNoteDraft(noteId);
   if(noteId){
     idbGet('notes', noteId).then(n=>{
       if(n){ document.getElementById('noteDate').value = n.date; document.getElementById('noteText').value = n.text; }
+      if(draft){ document.getElementById('noteDate').value = draft.date || todayStr(); document.getElementById('noteText').value = draft.text; toast('이어서 작성하던 메모를 불러왔어요'); }
     });
+  } else if(draft){
+    document.getElementById('noteDate').value = draft.date || todayStr();
+    document.getElementById('noteText').value = draft.text;
+    toast('이어서 작성하던 메모를 불러왔어요');
   }
 }
 async function saveNote(noteId){
@@ -446,6 +484,7 @@ async function saveNote(noteId){
       await idbPut('notes', {id, trialId: currentTrialId, date, text});
     }
   }catch(e){ toast(e.message); return; }
+  clearNoteDraft(noteId);
   closeModal('noteModal');
   toast('메모를 저장했어요');
   renderNotes(currentTrialId);

@@ -128,18 +128,29 @@ async function savePhotos(){
   await runUploadSave();
 }
 // createTrial과 같은 이유 — 저장 버튼을 두 번 누르면 사진이 중복 업로드되던 문제라,
-// 처리 중일 때 재진입을 막는다.
+// 처리 중일 때 재진입을 막는다. 단, 실제 업로드는 뒤에서 계속 진행되므로(아래 참고)
+// 이 락은 "상세화면으로 넘어가기 전까지"만 잠깐 걸리고, 업로드가 끝날 때까지 계속
+// 잠겨있진 않는다 — 안 그러면 이전 사진이 아직 올라가는 중일 때 다음 사진을 못 올림.
 let _savingUpload = false;
 async function runUploadSave(){
   if(_savingUpload) return;
   if(pendingFiles.length===0){ toast('사진을 선택해주세요'); return; }
-  const date = document.getElementById('uploadDate').value || todayStr();
   _savingUpload = true;
-  toast('저장하고 있어요...');
+  // 화면 전환 후 다른 시교 업로드 화면으로 넘어가면 pendingFiles 등 전역 상태가
+  // 리셋되니, 지금 저장할 내용을 미리 스냅샷 떠서 백그라운드 작업에 넘긴다.
+  const filesToUpload = pendingFiles.slice();
+  const rotationsToUpload = pendingRotations.slice();
+  const trialId = currentTrialId, subject = uploadSubject;
+  const date = document.getElementById('uploadDate').value || todayStr();
+  const uploadingCount = filesToUpload.length;
+
+  toast(`사진 ${uploadingCount}장 업로드를 시작했어요`);
+  go('detail', trialId);
+  _savingUpload = false;
+
   try{
     let queuedCount = 0;
-    const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
-    const trialId = currentTrialId, subject = uploadSubject;
+    const processed = await Promise.all(filesToUpload.map((f,i)=>processUploadFile(f, rotationsToUpload[i])));
     const results = await Promise.allSettled(processed.map(({blob, thumbBlob})=>
       uploadPhoto(trialId, {full: blob, thumb: thumbBlob, date, subject})
     ));
@@ -155,18 +166,23 @@ async function runUploadSave(){
       });
       queuedCount++;
     }
-    await touchTrialUpdatedAt(currentTrialId);
+    await touchTrialUpdatedAt(trialId);
     if(queuedCount > 0){
       toast(`오프라인이라 사진 ${queuedCount}장을 기기에 저장해뒀어요. 연결되면 자동으로 올라가요.`);
     } else {
-      toast(`사진 ${pendingFiles.length}장 저장됐어요`);
+      toast(`사진 ${uploadingCount}장 저장됐어요`);
     }
     updateOfflineQueueBadge();
-    go('detail', currentTrialId);
+    // 아직 같은 시교 상세화면을 보고 있으면(다른 데로 안 넘어갔으면) 타임라인만
+    // 조용히 새로고침해서 방금 올라간 사진이 바로 보이게 — 탭 전환 등은 안 건드림.
+    if(currentTrialId === trialId){
+      try{
+        allPhotosCache = (await idbGetAllByIndex('photos','trialId',trialId)).sort((a,b)=>a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
+        renderTimelineList();
+      }catch(e){}
+    }
   }catch(e){
     showStorageError(e);
-  }finally{
-    _savingUpload = false;
   }
 }
 

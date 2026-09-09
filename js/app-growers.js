@@ -263,13 +263,24 @@ async function renderGrowerNotes(growerId){
     list.innerHTML = notes.map(n=>`
       <div class="list-item" style="display:block;cursor:default;">
         <div class="sub" style="margin-bottom:3px;">${n.date}</div>
-        <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
+        <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${formatNoteText(escapeHtml(collapseBlankLines(n.text)))}</div>
         <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:8px;">
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="openGrowerNoteModal('${n.id}')">${icon('edit',15)}</button>
           <button class="action" style="color:var(--danger);font-size:14px;" onclick="deleteGrowerNote('${n.id}')">${icon('trash',16)}</button>
         </div>
       </div>`).join('');
   }
+}
+// 시교 메모(app-compare-save.js)와 같은 이유 — 작성 중 실수로 닫혀도 이어 쓸 수 있게.
+function growerNoteDraftKey(noteId){ return `cl_notedraft_g_${currentGrowerId}_${noteId||'new'}`; }
+function saveGrowerNoteDraft(noteId){
+  try{ localStorage.setItem(growerNoteDraftKey(noteId), JSON.stringify({
+    date: document.getElementById('growerNoteDate').value, text: document.getElementById('growerNoteText').value
+  })); }catch(e){}
+}
+function clearGrowerNoteDraft(noteId){ try{ localStorage.removeItem(growerNoteDraftKey(noteId)); }catch(e){} }
+function loadGrowerNoteDraft(noteId){
+  try{ const raw = localStorage.getItem(growerNoteDraftKey(noteId)); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
 }
 function openGrowerNoteModal(noteId){
   removeIfExists('growerNoteModal');
@@ -280,22 +291,34 @@ function openGrowerNoteModal(noteId){
       <h3>${noteId? '메모 수정':'메모 추가'}</h3>
       <div class="field">
         <label>날짜</label>
-        <input type="date" id="growerNoteDate" value="${todayStr()}">
+        <input type="date" id="growerNoteDate" value="${todayStr()}" oninput="saveGrowerNoteDraft('${noteId||''}')">
       </div>
       <div class="field">
-        <label>내용</label>
-        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등"></textarea>
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          내용
+          <span style="display:flex;gap:6px;">
+            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('growerNoteText','**',()=>saveGrowerNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('growerNoteText','__',()=>saveGrowerNoteDraft('${noteId||''}'))">U</button>
+          </span>
+        </label>
+        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}')"></textarea>
       </div>
       <div class="btn-row">
-        ${noteId? '<button class="btn btn-ghost" onclick="cancelAction(()=>closeModal(\'growerNoteModal\'))">취소</button>':''}
+        ${noteId? `<button class="btn btn-ghost" onclick="clearGrowerNoteDraft('${noteId}'); cancelAction(()=>closeModal('growerNoteModal'))">취소</button>`:''}
         <button class="btn btn-primary" onclick="saveGrowerNote('${noteId||''}')">저장</button>
       </div>
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
+  const draft = loadGrowerNoteDraft(noteId);
   if(noteId){
     const n = currentGrowerNotesCache.find(x=>x.id===noteId);
     if(n){ document.getElementById('growerNoteDate').value = n.date; document.getElementById('growerNoteText').value = n.text; }
+  }
+  if(draft){
+    document.getElementById('growerNoteDate').value = draft.date || todayStr();
+    document.getElementById('growerNoteText').value = draft.text;
+    toast('이어서 작성하던 메모를 불러왔어요');
   }
 }
 async function saveGrowerNote(noteId){
@@ -306,6 +329,7 @@ async function saveGrowerNote(noteId){
   try{
     await idbPut('growerNotes', {id, growerId: currentGrowerId, date, text});
   }catch(e){ toast(e.message); return; }
+  clearGrowerNoteDraft(noteId);
   closeModal('growerNoteModal');
   toast('메모를 저장했어요');
   renderGrowerNotes(currentGrowerId);

@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 74;
+const APP_VERSION = 75;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -351,6 +351,7 @@ function icon(name, size){
     arrowTool: `<svg ${c} ${s}><line x1="5" y1="19" x2="19" y2="5"/><polyline points="9,5 19,5 19,15"/></svg>`,
     textTool: `<svg ${c} ${s}><line x1="5" y1="6" x2="19" y2="6"/><line x1="12" y1="6" x2="12" y2="19"/></svg>`,
     undo: `<svg ${c} ${s}><path d="M4 8h9a5 5 0 0 1 0 10h-2"/><polyline points="8,4 4,8 8,12"/></svg>`,
+    eraser: `<svg ${c} ${s}><path d="M4.5 15.5 13 7l4 4-8.5 8.5H6a1 1 0 0 1-.7-.3L4 18a1 1 0 0 1 0-1.4Z"/><path d="M7 20h13"/></svg>`,
     copy: `<svg ${c} ${s}><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`,
     pin: `<svg ${c} ${s}><path d="M12 21s7-6.6 7-11.5A7 7 0 0 0 5 9.5C5 14.4 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>`,
     calendarPlus: `<svg ${c} ${s}><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>`,
