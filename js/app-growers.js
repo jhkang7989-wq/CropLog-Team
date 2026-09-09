@@ -194,13 +194,7 @@ async function renderGrower(id){
     infoCard.classList.add('hidden');
   }
 
-  const memoSection = document.getElementById('growerMemoSection');
-  if(g.memo && g.memo.trim()){
-    document.getElementById('growerMemo').textContent = g.memo;
-    memoSection.classList.remove('hidden');
-  } else {
-    memoSection.classList.add('hidden');
-  }
+  renderGrowerNotes(id);
 
   const addrSection = document.getElementById('growerAddrSection');
   if(currentGrowerAddresses.length){
@@ -237,6 +231,86 @@ async function renderGrower(id){
         </div>`;
       }).join('')}
     </div></div>` : '<p class="empty">아직 등록된 시교가 없어요.</p>';
+}
+
+/* ================= 농가 메모 =================
+   시교 메모(notes)와 달리 여러 사람이 같이 관리하는 정보라 PIN 없이 누구나 추가·수정·
+   삭제할 수 있게 한다. 아직 배포 전 백엔드일 수 있으니 조회 실패는 조용히 빈 목록으로
+   내려서(try/catch) 농가 상세 화면 전체가 깨지지 않게 한다. */
+let currentGrowerNotesCache = [];
+async function renderGrowerNotes(growerId){
+  const list = document.getElementById('growerNoteList');
+  let notes;
+  try{
+    notes = (await idbGetAllByIndex('growerNotes', 'growerId', growerId)).sort((a,b)=>b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+  }catch(e){
+    list.innerHTML = '<p class="empty">메모를 불러오지 못했어요.</p>';
+    return;
+  }
+  currentGrowerNotesCache = notes;
+  if(notes.length===0){
+    list.innerHTML = '<p class="empty">등록된 메모가 없어요. "+ 추가"로 남겨보세요.</p>';
+  } else {
+    list.innerHTML = notes.map(n=>`
+      <div class="list-item" style="align-items:flex-start;cursor:default;">
+        <div class="info" style="flex:1;">
+          <div class="sub" style="margin-bottom:3px;">${n.date}</div>
+          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(n.text)}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex:0 0 auto;">
+          <button class="action" style="color:var(--muted);font-size:14px;" onclick="openGrowerNoteModal('${n.id}')">${icon('edit',15)}</button>
+          <button class="action" style="color:var(--danger);font-size:14px;" onclick="deleteGrowerNote('${n.id}')">${icon('trash',16)}</button>
+        </div>
+      </div>`).join('');
+  }
+}
+function openGrowerNoteModal(noteId){
+  removeIfExists('growerNoteModal');
+  const backdrop = document.createElement('div');
+  backdrop.className='modal-backdrop'; backdrop.id='growerNoteModal';
+  backdrop.innerHTML = `
+    <div class="modal-sheet">
+      <h3>${noteId? '메모 수정':'메모 추가'}</h3>
+      <div class="field">
+        <label>날짜</label>
+        <input type="date" id="growerNoteDate" value="${todayStr()}">
+      </div>
+      <div class="field">
+        <label>내용</label>
+        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등"></textarea>
+      </div>
+      <div class="btn-row">
+        ${noteId? '<button class="btn btn-ghost" onclick="cancelAction(()=>closeModal(\'growerNoteModal\'))">취소</button>':''}
+        <button class="btn btn-primary" onclick="saveGrowerNote('${noteId||''}')">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(backdrop);
+  attachBackdropDismiss(backdrop);
+  if(noteId){
+    const n = currentGrowerNotesCache.find(x=>x.id===noteId);
+    if(n){ document.getElementById('growerNoteDate').value = n.date; document.getElementById('growerNoteText').value = n.text; }
+  }
+}
+async function saveGrowerNote(noteId){
+  const date = document.getElementById('growerNoteDate').value || todayStr();
+  const text = document.getElementById('growerNoteText').value.trim();
+  if(!text){ toast('메모 내용을 입력해주세요'); return; }
+  const id = noteId || uid();
+  try{
+    await idbPut('growerNotes', {id, growerId: currentGrowerId, date, text});
+  }catch(e){ toast(e.message); return; }
+  closeModal('growerNoteModal');
+  toast('메모를 저장했어요');
+  renderGrowerNotes(currentGrowerId);
+}
+async function deleteGrowerNote(noteId){
+  const ok = await showConfirm({title:'메모 삭제', message:'이 메모를 삭제할까요?', confirmLabel:'삭제', danger:true});
+  if(!ok) return;
+  try{
+    await idbDelete('growerNotes', noteId);
+  }catch(e){ toast(e.message); return; }
+  toast('삭제했어요');
+  renderGrowerNotes(currentGrowerId);
 }
 
 function copyGrowerAddress(idx){
@@ -291,10 +365,6 @@ async function openGrowerEditModal(growerId){
         <label style="display:flex;align-items:center;">밭 주소 <span class="link" style="margin-left:auto;" onclick="addAddressField('geAddr')">+ 주소 추가</span></label>
         <div id="geAddrAddressList"></div>
       </div>
-      <div class="field">
-        <label>비고</label>
-        <textarea id="geMemo" rows="3" placeholder="특이사항 등">${g ? escapeHtml(g.memo||'') : ''}</textarea>
-      </div>
       <div class="btn-row">
         <button class="btn btn-ghost" onclick="cancelAction(()=>closeModal('growerEditModal'))">취소</button>
         <button class="btn btn-primary" onclick="saveGrowerEdit('${g ? g.id : ''}')">저장</button>
@@ -316,8 +386,7 @@ async function saveGrowerEdit(growerId){
   const farmSizeUnit = document.getElementById('geFarmSizeUnit').value.trim();
   const mainCrops = document.getElementById('geMainCrops').value.split(',').map(s=>s.trim()).filter(Boolean);
   const addresses = getAddressValues('geAddr');
-  const memo = document.getElementById('geMemo').value.trim();
-  const payload = {name, phone, regionSido, regionSigun, farmSizeValue, farmSizeUnit, mainCrops, addresses, memo};
+  const payload = {name, phone, regionSido, regionSigun, farmSizeValue, farmSizeUnit, mainCrops, addresses};
 
   if(growerId){
     payload.id = growerId;

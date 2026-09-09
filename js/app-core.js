@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 66;
+const APP_VERSION = 67;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -57,6 +57,7 @@ function idbGetAllByIndex(store, indexName, value){
   if(store==='notes' && indexName==='trialId') return apiFetch(`/api/trials/${value}/notes`);
   if(store==='trials' && indexName==='growerId') return apiFetch(`/api/growers/${value}/trials`);
   if(store==='evaluations' && indexName==='trialId') return apiFetch(`/api/trials/${value}/evaluations`);
+  if(store==='growerNotes' && indexName==='growerId') return apiFetch(`/api/growers/${value}/notes`);
   return Promise.resolve([]);
 }
 // schedules/date에 IDBKeyRange를 쓰던 걸 from/to/date 쿼리로 변환
@@ -99,6 +100,7 @@ async function idbGet(store, key){
   if(store==='comparisons') return apiFetch(`/api/comparisons/${key}`).catch(()=>undefined);
   if(store==='schedules') return apiFetch(`/api/schedules/${key}`).catch(()=>undefined);
   if(store==='growers') return apiFetch(`/api/growers/${key}`).catch(()=>undefined);
+  if(store==='growerNotes') return apiFetch(`/api/grower-notes/${key}`).catch(()=>undefined);
   if(store==='meta') return getLocalMeta(key);
   return undefined;
 }
@@ -111,6 +113,7 @@ function idbPut(store, val){
   if(store==='evaluations') return apiJson(`/api/trials/${val.trialId}/evaluations`, 'POST', val);
   if(store==='evalItems') return apiJson('/api/eval-items', 'POST', val);
   if(store==='products') return apiJson('/api/products', 'POST', val);
+  if(store==='growerNotes') return apiJson(`/api/growers/${val.growerId}/notes`, 'POST', val);
   if(store==='meta') return Promise.resolve(setLocalMeta(val));
   // photos/comparisons는 파일 업로드가 껴서 각자 전용 함수(uploadPhoto 등)로 처리 — 여기로 오면 안 됨
   console.error('idbPut: 지원 안 하는 store', store, val);
@@ -127,6 +130,7 @@ function idbDelete(store, key){
   if(store==='evaluations') return apiFetch(`/api/evaluations/${key}`, { method:'DELETE' });
   if(store==='evalItems') return apiFetch(`/api/eval-items/${key}`, { method:'DELETE' });
   if(store==='products') return apiFetch(`/api/products/${key}`, { method:'DELETE' });
+  if(store==='growerNotes') return apiFetch(`/api/grower-notes/${key}`, { method:'DELETE' });
   return Promise.resolve(true);
 }
 // 농가 검색 — growers 목록 화면과 성함 자동완성(아래 그로워 피커)이 함께 씀.
