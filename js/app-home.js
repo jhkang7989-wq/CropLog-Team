@@ -1,12 +1,22 @@
 /* ================= 홈 ================= */
-let homeExpandedGroups = new Set();
+// 한 번에 하나만 펼쳐지게(품목이 늘어도 목록이 한없이 길어지지 않도록) 여러 개 담는
+// Set 대신 딱 하나만 기억한다.
+let homeExpandedGroup = null;
 function toggleHomeCropGroup(cropId){
-  if(homeExpandedGroups.has(cropId)) homeExpandedGroups.delete(cropId);
-  else homeExpandedGroups.add(cropId);
+  const wasOpen = homeExpandedGroup === cropId;
+  const prevOpen = homeExpandedGroup;
+  homeExpandedGroup = wasOpen ? null : cropId;
+
+  if(prevOpen && prevOpen !== cropId){
+    const prevBody = document.getElementById(`homeGroupBody-${prevOpen}`);
+    const prevChev = document.getElementById(`homeGroupChev-${prevOpen}`);
+    if(prevBody) prevBody.classList.remove('open');
+    if(prevChev) prevChev.classList.remove('open');
+  }
   const body = document.getElementById(`homeGroupBody-${cropId}`);
   const chev = document.getElementById(`homeGroupChev-${cropId}`);
-  if(body) body.classList.toggle('hidden', !homeExpandedGroups.has(cropId));
-  if(chev) chev.classList.toggle('open', homeExpandedGroups.has(cropId));
+  if(body) body.classList.toggle('open', !wasOpen);
+  if(chev) chev.classList.toggle('open', !wasOpen);
 }
 async function renderHome(){
   const crops = await idbGetAll('crops');
@@ -29,7 +39,7 @@ async function renderHome(){
     recentList.innerHTML = cropIds.map(cid=>{
       const c = cropMap[cid] || {name:'?', color:'#999'};
       const list = grouped[cid].sort((a,b)=>(b.updatedAt||b.createdAt)-(a.updatedAt||a.createdAt));
-      const expanded = homeExpandedGroups.has(cid);
+      const expanded = homeExpandedGroup === cid;
       return `
         <div class="home-crop-group">
           <div class="home-crop-header" onclick="toggleHomeCropGroup('${cid}')">
@@ -38,18 +48,20 @@ async function renderHome(){
             <span class="home-crop-count">${list.length}</span>
             <span class="home-crop-chev ${expanded?'open':''}" id="homeGroupChev-${cid}">${icon('chevRight',14)}</span>
           </div>
-          <div class="home-crop-body ${expanded?'':'hidden'}" id="homeGroupBody-${cid}">
-            ${list.map(t=>`<div class="recent-item" onclick="go('detail','${t.id}')">
-              <div class="bar" style="background:${c.color}"></div>
-              <div class="info">
-                <div class="name">${trialTitle(t)}</div>
-                <div class="sub">${t.seg}</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span class="when">${timeAgo(t.updatedAt||t.createdAt)}</span>
-                <span class="chev">›</span>
-              </div>
-            </div>`).join('')}
+          <div class="home-crop-body ${expanded?'open':''}" id="homeGroupBody-${cid}">
+            <div>
+              ${list.map(t=>`<div class="recent-item" onclick="go('detail','${t.id}')">
+                <div class="bar" style="background:${c.color}"></div>
+                <div class="info">
+                  <div class="name">${trialTitle(t)}</div>
+                  <div class="sub">${t.seg}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="when">${timeAgo(t.updatedAt||t.createdAt)}</span>
+                  <span class="chev">›</span>
+                </div>
+              </div>`).join('')}
+            </div>
           </div>
         </div>`;
     }).join('');

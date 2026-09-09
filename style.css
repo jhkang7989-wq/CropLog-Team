@@ -154,6 +154,14 @@
   .home-crop-chev.open{transform:rotate(90deg);}
   .home-crop-body{border-top:1px solid var(--line);}
   .home-crop-body.hidden{display:none;}
+  /* 홈 화면 아코디언만 부드럽게 열리게(농가 상세 등 다른 곳의 .home-crop-body는 항상 펼쳐진
+     정적 목록이라 그대로 둠) — 실제 높이를 몰라도 되는 grid-template-rows 트릭으로 애니메이션. */
+  #recentList .home-crop-body{
+    display:grid; grid-template-rows:0fr; transition:grid-template-rows .28s ease;
+    overflow:hidden; border-top:none;
+  }
+  #recentList .home-crop-body.open{grid-template-rows:1fr;}
+  #recentList .home-crop-body > div{overflow:hidden; min-height:0; border-top:1px solid var(--line);}
   .recent-item{
     background:transparent;border:none;border-radius:0;
     padding:12px 14px;margin-bottom:0;display:flex;justify-content:space-between;align-items:center;
