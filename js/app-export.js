@@ -26,8 +26,6 @@ async function renderUpload(trialId){
   const hasReference = !!(t.referenceVariety && t.referenceVariety.trim());
   subjectField.classList.toggle('hidden', !hasReference);
   document.getElementById('uploadSubjectRef').textContent = hasReference ? `대비품종 (${t.referenceVariety})` : '대비품종';
-  const prevEval = await getLatestEvaluation(trialId);
-  await initEvalSection('uploadEvalSection', t.cropId, prevEval, false);
 }
 function handlePhotoSelect(e){
   const files = Array.from(e.target.files);
@@ -123,62 +121,45 @@ async function processUploadFileMainThread(file, rotationDeg){
     return { blob: file, thumbBlob: null };
   }
 }
+// 평가는 사진 저장에 묶어두면 사진을 여러 번 나눠 올릴 때마다 값을 안 건드려도
+// 매번 새 평가 이력으로 쌓여서 중복이 계속 생기는 문제가 있었다 — 평가는 이제
+// 상세화면의 "평가" 탭 "+ 추가"에서 필요할 때만 따로 남기게 분리했다.
 async function savePhotos(){
-  await runUploadSave({requireSomething:true});
+  await runUploadSave();
 }
-// "사진 없이 나중에 추가할게요" — 평가만 입력하고 사진 없이 방문 기록만 남기는 경우도
-// 있어서(기획서: "종합 점수 하나만 찍고 나가도 저장됩니다"), 평가 값이 있으면 그것만
-// 저장하고, 아무것도 안 건드렸으면 예전처럼 그냥 취소하고 나간다.
-async function skipPhotosLink(){
-  await runUploadSave({requireSomething:false});
-}
-// createTrial과 같은 이유 — 저장 버튼을 두 번 누르면 사진이 중복 업로드되거나
-// 평가가 두 번 저장되던 문제라, 처리 중일 때 재진입을 막는다.
+// createTrial과 같은 이유 — 저장 버튼을 두 번 누르면 사진이 중복 업로드되던 문제라,
+// 처리 중일 때 재진입을 막는다.
 let _savingUpload = false;
-async function runUploadSave({requireSomething}){
+async function runUploadSave(){
   if(_savingUpload) return;
+  if(pendingFiles.length===0){ toast('사진을 선택해주세요'); return; }
   const date = document.getElementById('uploadDate').value || todayStr();
-  const evalPayload = collectEvalPayload();
-  if(pendingFiles.length===0 && !evalPayload){
-    if(requireSomething){ toast('사진을 선택하거나 평가를 입력해주세요'); return; }
-    cancelAction(()=>go('detail', currentTrialId), '사진 없이 넘어갔어요');
-    return;
-  }
   _savingUpload = true;
   toast('저장하고 있어요...');
   try{
     let queuedCount = 0;
-    if(pendingFiles.length){
-      const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
-      const trialId = currentTrialId, subject = uploadSubject;
-      const results = await Promise.allSettled(processed.map(({blob, thumbBlob})=>
-        uploadPhoto(trialId, {full: blob, thumb: thumbBlob, date, subject})
-      ));
-      for(let i=0;i<results.length;i++){
-        if(results[i].status !== 'rejected') continue;
-        const err = results[i].reason;
-        // 진짜 네트워크 두절(현장 신호 없음)만 큐에 담고, 서버가 거부한 진짜 오류는
-        // 재시도해도 소용없으니 그대로 실패 처리한다.
-        if(!isNetworkError(err)) throw err;
-        await queueOfflineUpload({
-          id: uid(), trialId, subject, date,
-          full: processed[i].blob, thumb: processed[i].thumbBlob, createdAt: Date.now()
-        });
-        queuedCount++;
-      }
-    }
-    if(evalPayload){
-      try{ await saveEvaluationEntry(currentTrialId, date, evalPayload); }
-      catch(e){
-        if(!isNetworkError(e)) throw e;
-        toast('오프라인이라 평가는 저장하지 못했어요. 연결되면 다시 입력해주세요.');
-      }
+    const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
+    const trialId = currentTrialId, subject = uploadSubject;
+    const results = await Promise.allSettled(processed.map(({blob, thumbBlob})=>
+      uploadPhoto(trialId, {full: blob, thumb: thumbBlob, date, subject})
+    ));
+    for(let i=0;i<results.length;i++){
+      if(results[i].status !== 'rejected') continue;
+      const err = results[i].reason;
+      // 진짜 네트워크 두절(현장 신호 없음)만 큐에 담고, 서버가 거부한 진짜 오류는
+      // 재시도해도 소용없으니 그대로 실패 처리한다.
+      if(!isNetworkError(err)) throw err;
+      await queueOfflineUpload({
+        id: uid(), trialId, subject, date,
+        full: processed[i].blob, thumb: processed[i].thumbBlob, createdAt: Date.now()
+      });
+      queuedCount++;
     }
     await touchTrialUpdatedAt(currentTrialId);
     if(queuedCount > 0){
       toast(`오프라인이라 사진 ${queuedCount}장을 기기에 저장해뒀어요. 연결되면 자동으로 올라가요.`);
     } else {
-      toast(pendingFiles.length ? `사진 ${pendingFiles.length}장 저장됐어요` : '평가를 저장했어요');
+      toast(`사진 ${pendingFiles.length}장 저장됐어요`);
     }
     updateOfflineQueueBadge();
     go('detail', currentTrialId);
