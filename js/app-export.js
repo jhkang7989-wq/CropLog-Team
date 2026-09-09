@@ -115,7 +115,11 @@ async function savePhotos(){
 async function skipPhotosLink(){
   await runUploadSave({requireSomething:false});
 }
+// createTrial과 같은 이유 — 저장 버튼을 두 번 누르면 사진이 중복 업로드되거나
+// 평가가 두 번 저장되던 문제라, 처리 중일 때 재진입을 막는다.
+let _savingUpload = false;
 async function runUploadSave({requireSomething}){
+  if(_savingUpload) return;
   const date = document.getElementById('uploadDate').value || todayStr();
   const evalPayload = collectEvalPayload();
   if(pendingFiles.length===0 && !evalPayload){
@@ -123,6 +127,7 @@ async function runUploadSave({requireSomething}){
     cancelAction(()=>go('detail', currentTrialId), '사진 없이 넘어갔어요');
     return;
   }
+  _savingUpload = true;
   toast('저장하고 있어요...');
   try{
     if(pendingFiles.length){
@@ -139,6 +144,8 @@ async function runUploadSave({requireSomething}){
     go('detail', currentTrialId);
   }catch(e){
     showStorageError(e);
+  }finally{
+    _savingUpload = false;
   }
 }
 

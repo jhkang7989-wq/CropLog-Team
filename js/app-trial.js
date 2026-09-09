@@ -58,47 +58,56 @@ function selectCustomCrop(el){
   el.classList.add('sel');
   document.getElementById('customCropBox').classList.remove('hidden');
 }
+// 저장 버튼을 두 번 연달아 누르면(네트워크 응답 오기 전 화면이 안 바뀌어서 흔히 일어남)
+// 시교가 똑같이 두 번 등록되던 문제 — 처리 중일 때 재진입을 막는다.
+let _creatingTrial = false;
 async function createTrial(){
-  const seg = document.getElementById('ntSeg').value.trim();
-  const name = document.getElementById('ntName').value.trim();
-  const region = document.getElementById('ntRegion').value.trim();
-  const sowDate = document.getElementById('ntSowDate').value;
-  const transplantDate = document.getElementById('ntTransplantDate').value;
-  const season = document.getElementById('ntSeason').value.trim();
-  const status = document.getElementById('ntStatus').value;
-  const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
-  const fieldAddresses = getAddressValues('nt');
-  if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
-
-  let growerId = null, growerName = null;
+  if(_creatingTrial) return;
+  _creatingTrial = true;
   try{
-    const resolved = await resolveGrowerPicker('ntGrowerName');
-    growerId = resolved.growerId; growerName = resolved.growerName;
-  }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
+    const seg = document.getElementById('ntSeg').value.trim();
+    const name = document.getElementById('ntName').value.trim();
+    const region = document.getElementById('ntRegion').value.trim();
+    const sowDate = document.getElementById('ntSowDate').value;
+    const transplantDate = document.getElementById('ntTransplantDate').value;
+    const season = document.getElementById('ntSeason').value.trim();
+    const status = document.getElementById('ntStatus').value;
+    const referenceVariety = document.getElementById('ntReferenceVariety').value.trim();
+    const fieldAddresses = getAddressValues('nt');
+    if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
 
-  let cropId = selectedCropId;
-  if(useCustomCrop){
-    const cname = document.getElementById('customCropName').value.trim();
-    if(!cname){ toast('품목명을 입력해주세요'); return; }
-    const color = window._customColor ? window._customColor() : '#4a7c59';
-    cropId = uid();
-    await idbPut('crops', {id:cropId, name:cname, color});
+    let growerId = null, growerName = null;
+    try{
+      const resolved = await resolveGrowerPicker('ntGrowerName');
+      growerId = resolved.growerId; growerName = resolved.growerName;
+    }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
+
+    let cropId = selectedCropId;
+    if(useCustomCrop){
+      const cname = document.getElementById('customCropName').value.trim();
+      if(!cname){ toast('품목명을 입력해주세요'); return; }
+      const color = window._customColor ? window._customColor() : '#4a7c59';
+      cropId = uid();
+      await idbPut('crops', {id:cropId, name:cname, color});
+    }
+    if(!cropId){ toast('품목을 선택해주세요'); return; }
+
+    let productId = null, productName = name;
+    try{
+      const resolvedProduct = await resolveProductPicker('ntName', () => cropId);
+      productId = resolvedProduct.productId;
+      productName = resolvedProduct.name || name;
+    }catch(e){ toast('제품 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
+
+    const id = uid();
+    const now = Date.now();
+    await idbPut('trials', {id, cropId, seg, name: productName, productId, region, growerId, growerName, sowDate, transplantDate, season, status, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
+    await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
+    toast('시교가 등록됐어요');
+    go('upload', id);
+  }finally{
+    _creatingTrial = false;
   }
-  if(!cropId){ toast('품목을 선택해주세요'); return; }
-
-  let productId = null, productName = name;
-  try{
-    const resolvedProduct = await resolveProductPicker('ntName', () => cropId);
-    productId = resolvedProduct.productId;
-    productName = resolvedProduct.name || name;
-  }catch(e){ toast('제품 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
-
-  const id = uid();
-  const now = Date.now();
-  await idbPut('trials', {id, cropId, seg, name: productName, productId, region, growerId, growerName, sowDate, transplantDate, season, status, referenceVariety, fieldAddresses, createdAt: now, updatedAt: now});
-  await idbPut('meta', {key:'lastUsed', value:{cropId, seg, trialId:id}});
-  toast('시교가 등록됐어요');
-  go('upload', id);
 }
 
 /* ================= 시교 상세 ================= */
@@ -182,40 +191,49 @@ async function openTrialEditModal(){
   initGrowerPicker('editTrialGrowerName', 'editTrialGrowerSuggest', t.growerId, t.growerName);
   initProductPicker('editTrialName', 'editTrialProductSuggest', () => document.getElementById('editTrialCrop').value, t.productId, t.name);
 }
+// createTrial과 같은 이유(연달아 두 번 누르면 그로워/제품 피커가 각각 새 항목을
+// 중복 생성할 수 있음) — 처리 중일 때 재진입을 막는다.
+let _savingTrialEdit = false;
 async function saveTrialEdit(){
-  const cropId = document.getElementById('editTrialCrop').value;
-  const seg = document.getElementById('editTrialSeg').value.trim();
-  const name = document.getElementById('editTrialName').value.trim();
-  const region = document.getElementById('editTrialRegion').value.trim();
-  const sowDate = document.getElementById('editTrialSowDate').value;
-  const transplantDate = document.getElementById('editTrialTransplantDate').value;
-  const season = document.getElementById('editTrialSeason').value.trim();
-  const status = document.getElementById('editTrialStatus').value;
-  const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
-  const fieldAddresses = getAddressValues('editTrial');
-  if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
-  let growerId = null, growerName = null;
+  if(_savingTrialEdit) return;
+  _savingTrialEdit = true;
   try{
-    const resolved = await resolveGrowerPicker('editTrialGrowerName');
-    growerId = resolved.growerId; growerName = resolved.growerName;
-  }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
-  let productId = null, productName = name;
-  try{
-    const resolvedProduct = await resolveProductPicker('editTrialName', () => cropId);
-    productId = resolvedProduct.productId;
-    productName = resolvedProduct.name || name;
-  }catch(e){ toast('제품 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
-  const pin = await promptPin({title:'시교 수정', message:'본인이 등록한 시교만 수정할 수 있어요. PIN을 입력해주세요.'});
-  if(pin===null) return;
-  const t = await idbGet('trials', currentTrialId);
-  t.cropId = cropId; t.seg = seg; t.name = productName; t.productId = productId; t.region = region; t.growerId = growerId; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.season = season; t.status = status; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
-  delete t.fieldAddress;
-  try{
-    await withPin(pin, ()=> idbPut('trials', t));
-  }catch(e){ toast(e.message); return; }
-  closeModal('trialEditModal');
-  toast('수정했어요');
-  renderDetail(currentTrialId);
+    const cropId = document.getElementById('editTrialCrop').value;
+    const seg = document.getElementById('editTrialSeg').value.trim();
+    const name = document.getElementById('editTrialName').value.trim();
+    const region = document.getElementById('editTrialRegion').value.trim();
+    const sowDate = document.getElementById('editTrialSowDate').value;
+    const transplantDate = document.getElementById('editTrialTransplantDate').value;
+    const season = document.getElementById('editTrialSeason').value.trim();
+    const status = document.getElementById('editTrialStatus').value;
+    const referenceVariety = document.getElementById('editTrialReferenceVariety').value.trim();
+    const fieldAddresses = getAddressValues('editTrial');
+    if(!seg || !name){ toast('SEG·제품/시교명을 입력해주세요'); return; }
+    let growerId = null, growerName = null;
+    try{
+      const resolved = await resolveGrowerPicker('editTrialGrowerName');
+      growerId = resolved.growerId; growerName = resolved.growerName;
+    }catch(e){ toast('농가 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
+    let productId = null, productName = name;
+    try{
+      const resolvedProduct = await resolveProductPicker('editTrialName', () => cropId);
+      productId = resolvedProduct.productId;
+      productName = resolvedProduct.name || name;
+    }catch(e){ toast('제품 정보를 저장하지 못했어요. 다시 시도해주세요.'); return; }
+    const pin = await promptPin({title:'시교 수정', message:'본인이 등록한 시교만 수정할 수 있어요. PIN을 입력해주세요.'});
+    if(pin===null) return;
+    const t = await idbGet('trials', currentTrialId);
+    t.cropId = cropId; t.seg = seg; t.name = productName; t.productId = productId; t.region = region; t.growerId = growerId; t.growerName = growerName; t.sowDate = sowDate; t.transplantDate = transplantDate; t.season = season; t.status = status; t.referenceVariety = referenceVariety; t.fieldAddresses = fieldAddresses;
+    delete t.fieldAddress;
+    try{
+      await withPin(pin, ()=> idbPut('trials', t));
+    }catch(e){ toast(e.message); return; }
+    closeModal('trialEditModal');
+    toast('수정했어요');
+    renderDetail(currentTrialId);
+  }finally{
+    _savingTrialEdit = false;
+  }
 }
 
 async function deleteTrialConfirm(){
