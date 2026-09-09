@@ -14,6 +14,10 @@ async function renderUpload(trialId){
   pendingRotations = [];
   document.getElementById('previewStrip').innerHTML='';
   document.getElementById('uploadDate').value = todayStr();
+  // 다른 시교의 업로드 화면에서 넘어왔을 때, 분류 정보 줄이 이전 시교 것을 잠깐
+  // 보여주다 바뀌던 것과 같은 문제 — 불러오기 전에 먼저 비운다.
+  document.getElementById('uploadClassifyInfo').textContent = '';
+  document.getElementById('uploadSubjectField').classList.add('hidden');
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
   document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${trialTitle(t)}`;
