@@ -201,7 +201,7 @@
     <main>
       <div class="help-card">
         <div class="help-title">① 시교 등록하기</div>
-        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명·지역·성함을 입력하면 등록돼요. 파종일·정식일·대비종·밭 주소(최대 5개)는 몰라도 등록 자체는 가능해요. 홈 검색은 제품명·SEG·지역·성함까지 다 찾아줘요.</p>
+        <p>홈 화면 우측 하단 <b>+</b> 버튼을 눌러 품목을 고르고 SEG·제품/시교명·지역·성함을 입력하면 등록돼요. 파종일·정식일·대비품종·밭 주소(최대 5개)는 몰라도 등록 자체는 가능해요. 홈 검색은 제품명·SEG·지역·성함까지 다 찾아줘요.</p>
       </div>
       <div class="help-card">
         <div class="help-title">② 사진 등록하기</div>
@@ -314,7 +314,7 @@
         </div>
       </div>
       <div class="field">
-        <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <label>대비품종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
         <input type="text" id="ntReferenceVariety" placeholder="예: 칼라탄">
       </div>
       <div class="field">
@@ -359,8 +359,8 @@
           </div>
         </div>
         <div class="tab-row hidden" id="timelineSubjectTabs" style="margin-bottom:12px;">
-          <div class="tab active" id="timelineSubjectOwn" onclick="setTimelineSubject('own')">우리 품종</div>
-          <div class="tab" id="timelineSubjectRef" onclick="setTimelineSubject('reference')">대비종</div>
+          <div class="tab active" id="timelineSubjectOwn" onclick="setTimelineSubject('own')">자사품종</div>
+          <div class="tab" id="timelineSubjectRef" onclick="setTimelineSubject('reference')">대비품종</div>
         </div>
         <div class="section-title">촬영 타임라인</div>
         <div id="timelineAll"></div>
@@ -430,8 +430,8 @@
       <div class="field hidden" id="uploadSubjectField">
         <label>구분</label>
         <div class="tab-row">
-          <div class="tab active" id="uploadSubjectOwn" onclick="setUploadSubject('own')">우리 품종</div>
-          <div class="tab" id="uploadSubjectRef" onclick="setUploadSubject('reference')">대비종</div>
+          <div class="tab active" id="uploadSubjectOwn" onclick="setUploadSubject('own')">자사품종</div>
+          <div class="tab" id="uploadSubjectRef" onclick="setUploadSubject('reference')">대비품종</div>
         </div>
       </div>
 
