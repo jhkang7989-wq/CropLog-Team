@@ -172,7 +172,7 @@ async function openTrialEditModal(){
         </div>
       </div>
       <div class="field">
-        <label>대비종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
+        <label>대비품종 <span class="autofill-tag" style="background:var(--cream);color:var(--muted);">선택</span></label>
         <input type="text" id="editTrialReferenceVariety" value="${t.referenceVariety||''}" placeholder="예: 칼라탄">
       </div>
       <div class="field">
@@ -255,7 +255,7 @@ async function deleteTrialConfirm(){
 }
 let allPhotosCache = [];
 let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
-// 대비종이 있는 시교만 "우리 품종/대비종" 탭으로 타임라인을 나눔 — 없는 시교는 사진이
+// 대비품종이 있는 시교만 "자사품종/대비품종" 탭으로 타임라인을 나눔 — 없는 시교는 사진이
 // 원래 안 섞이니 탭 자체를 안 보여줌.
 let timelineSubjectFilter = 'own';
 let timelineAgeBase = null, timelineAgeLabel = '';
@@ -309,7 +309,7 @@ async function renderDetail(trialId){
   const dateParts = [];
   if(t.sowDate) dateParts.push(['파종일', t.sowDate]);
   if(t.transplantDate) dateParts.push(['정식일', t.transplantDate]);
-  if(t.referenceVariety) dateParts.push(['대비종', t.referenceVariety]);
+  if(t.referenceVariety) dateParts.push(['대비품종', t.referenceVariety]);
   const detailDatesEl = document.getElementById('detailDates');
   if(dateParts.length){
     detailDatesEl.innerHTML = dateParts.map(([label,value])=>`<div class="dd-row">${label}<b>${escapeHtml(value)}</b></div>`).join('');
@@ -363,7 +363,7 @@ async function renderDetail(trialId){
   timelineAgeLabel = ageLabel;
   const hasReference = !!(t.referenceVariety && t.referenceVariety.trim());
   document.getElementById('timelineSubjectTabs').classList.toggle('hidden', !hasReference);
-  document.getElementById('timelineSubjectRef').textContent = hasReference ? `대비종 (${t.referenceVariety})` : '대비종';
+  document.getElementById('timelineSubjectRef').textContent = hasReference ? `대비품종 (${t.referenceVariety})` : '대비품종';
   setTimelineSubject('own');
 
   await renderNotes(trialId);

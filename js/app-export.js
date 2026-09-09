@@ -1,7 +1,7 @@
 /* ================= 업로드 ================= */
 let pendingFiles = [];
 let pendingRotations = [];
-// 대비종이 있는 시교만 "우리 품종/대비종" 구분을 보여줌 — 없는 시교엔 애초에 헷갈릴
+// 대비품종이 있는 시교만 "자사품종/대비품종" 구분을 보여줌 — 없는 시교엔 애초에 헷갈릴
 // 사진이 안 섞이니 화면만 복잡해짐.
 let uploadSubject = 'own';
 function setUploadSubject(subject){
@@ -21,7 +21,7 @@ async function renderUpload(trialId){
   const subjectField = document.getElementById('uploadSubjectField');
   const hasReference = !!(t.referenceVariety && t.referenceVariety.trim());
   subjectField.classList.toggle('hidden', !hasReference);
-  document.getElementById('uploadSubjectRef').textContent = hasReference ? `대비종 (${t.referenceVariety})` : '대비종';
+  document.getElementById('uploadSubjectRef').textContent = hasReference ? `대비품종 (${t.referenceVariety})` : '대비품종';
   const prevEval = await getLatestEvaluation(trialId);
   await initEvalSection('uploadEvalSection', t.cropId, prevEval, false);
 }
