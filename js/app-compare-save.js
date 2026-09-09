@@ -383,12 +383,10 @@ async function renderNotes(trialId){
     list.innerHTML = '<p class="empty">등록된 메모가 없어요. "+ 추가"로 남겨보세요.</p>';
   } else {
     list.innerHTML = notes.map(n=>`
-      <div class="list-item" style="align-items:flex-start;cursor:default;">
-        <div class="info" style="flex:1;">
-          <div class="sub" style="margin-bottom:3px;">${n.date}</div>
-          <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
-        </div>
-        <div style="display:flex;gap:4px;flex:0 0 auto;">
+      <div class="list-item" style="display:block;cursor:default;">
+        <div class="sub" style="margin-bottom:3px;">${n.date}</div>
+        <div class="name" style="font-weight:400;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escapeHtml(collapseBlankLines(n.text))}</div>
+        <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:8px;">
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="copyNoteText('${n.id}')" aria-label="메모 복사">${icon('copy',15)}</button>
           <button class="action" style="color:var(--muted);font-size:14px;" onclick="openNoteModal('${n.id}')">${icon('edit',15)}</button>
           <button class="action" style="color:var(--danger);font-size:14px;" onclick="deleteNote('${n.id}')">${icon('trash',16)}</button>
