@@ -255,6 +255,39 @@ async function deleteTrialConfirm(){
 }
 let allPhotosCache = [];
 let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
+// 대비종이 있는 시교만 "우리 품종/대비종" 탭으로 타임라인을 나눔 — 없는 시교는 사진이
+// 원래 안 섞이니 탭 자체를 안 보여줌.
+let timelineSubjectFilter = 'own';
+let timelineAgeBase = null, timelineAgeLabel = '';
+function setTimelineSubject(subject){
+  timelineSubjectFilter = subject;
+  document.getElementById('timelineSubjectOwn').classList.toggle('active', subject==='own');
+  document.getElementById('timelineSubjectRef').classList.toggle('active', subject==='reference');
+  renderTimelineList();
+}
+function renderTimelineList(){
+  const photos = allPhotosCache.filter(p => (p.subject||'own') === timelineSubjectFilter);
+  const grouped = {};
+  photos.forEach(p=>{ (grouped[p.date] = grouped[p.date]||[]).push(p); });
+  const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+  const timelineAll = document.getElementById('timelineAll');
+  if(dateKeys.length===0){
+    timelineAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
+  } else {
+    timelineAll.innerHTML = dateKeys.map(d=>{
+      const age = daysBetweenDates(timelineAgeBase, d);
+      const ageBadge = (age !== null && age >= 0) ? `<span class="age">${timelineAgeLabel.replace(' 후','')} +${age}일</span>` : '';
+      return `
+      <div class="date-group">
+        <div class="date-head">${d} ${ageBadge}<span class="cnt">${grouped[d].length}장</span></div>
+        <div class="photo-grid">
+          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoThumbUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  initTimelineDelegation();
+}
 function switchDetailTab(tab){
   if(tab!=='timeline') exitTimelineSelectMode();
   document.getElementById('detailTabTimeline').classList.toggle('active', tab==='timeline');
@@ -326,26 +359,12 @@ async function renderDetail(trialId){
   renderCompareCountTabs();
   renderCompare();
 
-  const grouped = {};
-  photos.forEach(p=>{ (grouped[p.date] = grouped[p.date]||[]).push(p); });
-  const dateKeys = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
-  const timelineAll = document.getElementById('timelineAll');
-  if(dateKeys.length===0){
-    timelineAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
-  } else {
-    timelineAll.innerHTML = dateKeys.map(d=>{
-      const age = daysBetweenDates(ageBase, d);
-      const ageBadge = (age !== null && age >= 0) ? `<span class="age">${ageLabel.replace(' 후','')} +${age}일</span>` : '';
-      return `
-      <div class="date-group">
-        <div class="date-head">${d} ${ageBadge}<span class="cnt">${grouped[d].length}장</span></div>
-        <div class="photo-grid">
-          ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoThumbUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
-  }
-  initTimelineDelegation();
+  timelineAgeBase = ageBase;
+  timelineAgeLabel = ageLabel;
+  const hasReference = !!(t.referenceVariety && t.referenceVariety.trim());
+  document.getElementById('timelineSubjectTabs').classList.toggle('hidden', !hasReference);
+  document.getElementById('timelineSubjectRef').textContent = hasReference ? `대비종 (${t.referenceVariety})` : '대비종';
+  setTimelineSubject('own');
 
   await renderNotes(trialId);
   await renderEvalHistory(trialId);

@@ -1,6 +1,14 @@
 /* ================= 업로드 ================= */
 let pendingFiles = [];
 let pendingRotations = [];
+// 대비종이 있는 시교만 "우리 품종/대비종" 구분을 보여줌 — 없는 시교엔 애초에 헷갈릴
+// 사진이 안 섞이니 화면만 복잡해짐.
+let uploadSubject = 'own';
+function setUploadSubject(subject){
+  uploadSubject = subject;
+  document.getElementById('uploadSubjectOwn').classList.toggle('active', subject==='own');
+  document.getElementById('uploadSubjectRef').classList.toggle('active', subject==='reference');
+}
 async function renderUpload(trialId){
   pendingFiles = [];
   pendingRotations = [];
@@ -9,6 +17,11 @@ async function renderUpload(trialId){
   const t = await idbGet('trials', trialId);
   const c = await idbGet('crops', t.cropId);
   document.getElementById('uploadClassifyInfo').textContent = `${c.name} / ${t.seg} / ${trialTitle(t)}`;
+  setUploadSubject('own');
+  const subjectField = document.getElementById('uploadSubjectField');
+  const hasReference = !!(t.referenceVariety && t.referenceVariety.trim());
+  subjectField.classList.toggle('hidden', !hasReference);
+  document.getElementById('uploadSubjectRef').textContent = hasReference ? `대비종 (${t.referenceVariety})` : '대비종';
   const prevEval = await getLatestEvaluation(trialId);
   await initEvalSection('uploadEvalSection', t.cropId, prevEval, false);
 }
@@ -133,7 +146,7 @@ async function runUploadSave({requireSomething}){
     if(pendingFiles.length){
       const processed = await Promise.all(pendingFiles.map((f,i)=>processUploadFile(f, pendingRotations[i])));
       await Promise.all(processed.map(({blob, thumbBlob})=>
-        uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date})
+        uploadPhoto(currentTrialId, {full: blob, thumb: thumbBlob, date, subject: uploadSubject})
       ));
     }
     if(evalPayload){
