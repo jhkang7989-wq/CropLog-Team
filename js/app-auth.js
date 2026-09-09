@@ -2,12 +2,16 @@
    전용 뷰 섹션을 따로 안 만들고, 기존 마킹 오버레이/라이트박스처럼 전체 화면 오버레이를
    JS로 만들어서 붙였다 뗀다 — index.html 구조를 거의 안 건드리기 위함. */
 
-function authOverlay(html){
+function authOverlay(bodyHtml){
   removeIfExists('authOverlay');
   const el = document.createElement('div');
   el.id = 'authOverlay';
-  el.style.cssText = 'position:fixed;inset:0;z-index:200;background:var(--cream,#F5F6F7);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;';
-  el.innerHTML = html;
+  el.style.cssText = 'position:fixed;inset:0;z-index:200;background:var(--cream,#F5F6F7);display:flex;align-items:center;justify-content:center;padding:24px;';
+  el.innerHTML = `
+    <div class="auth-card">
+      <img class="auth-logo" src="logo.png" alt="CropLog">
+      <div class="auth-body">${bodyHtml}</div>
+    </div>`;
   document.body.appendChild(el);
   return el;
 }
@@ -35,13 +39,10 @@ async function verifyAppPassword(pw){
 
 function renderPasswordGate(){
   const el = authOverlay(`
-    <div style="max-width:280px;width:100%;">
-      <div style="font-size:22px;font-weight:700;margin-bottom:6px;">🌱 CropLog</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 20px;">팀 공유 비밀번호를 입력해주세요</p>
-      <div class="field"><input type="password" id="gatePwInput" placeholder="비밀번호" inputmode="numeric"></div>
-      <p id="gatePwErr" style="font-size:12px;color:var(--danger,#b5543f);min-height:16px;margin:6px 0 12px;"></p>
-      <button class="btn btn-primary" id="gatePwBtn" style="width:100%;">입장하기</button>
-    </div>`);
+    <p class="sub">팀 공유 비밀번호를 입력해주세요</p>
+    <div class="field"><input type="password" id="gatePwInput" placeholder="비밀번호" inputmode="numeric"></div>
+    <p id="gatePwErr" class="err"></p>
+    <button class="btn btn-primary" id="gatePwBtn">입장하기</button>`);
   const submit = async ()=>{
     const pw = document.getElementById('gatePwInput').value.trim();
     if(!pw) return;
@@ -56,19 +57,16 @@ function renderPasswordGate(){
 }
 
 async function renderNameSelect(){
-  const el = authOverlay(`<div style="max-width:320px;width:100%;">불러오는 중...</div>`);
+  const el = authOverlay(`<p class="sub">불러오는 중...</p>`);
   let users;
   try{ users = await apiFetch('/api/users'); }
   catch(e){ setAppPassword(''); renderPasswordGate(); return; }
-  el.innerHTML = `
-    <div style="max-width:320px;width:100%;">
-      <div style="font-size:22px;font-weight:700;margin-bottom:6px;">🌱 CropLog</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 20px;">본인 이름을 선택해주세요</p>
-      <div id="nameGrid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
-        ${users.map(u=>`<div class="crop-tile" data-id="${u.id}" style="cursor:pointer;">
-          <span class="label">${escapeHtml(u.name)}</span>
-        </div>`).join('')}
-      </div>
+  el.querySelector('.auth-body').innerHTML = `
+    <p class="sub">본인 이름을 선택해주세요</p>
+    <div id="nameGrid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+      ${users.map(u=>`<div class="crop-tile" data-id="${u.id}" style="cursor:pointer;">
+        <span class="label">${escapeHtml(u.name)}</span>
+      </div>`).join('')}
     </div>`;
   el.querySelectorAll('#nameGrid .crop-tile').forEach(tile=>{
     tile.onclick = ()=> selectUser(users.find(u=>u.id===tile.dataset.id));
@@ -83,14 +81,12 @@ async function selectUser(user){
 
 function renderPinSetup(user){
   const el = authOverlay(`
-    <div style="max-width:280px;width:100%;">
-      <div style="font-size:18px;font-weight:700;margin-bottom:6px;">${escapeHtml(user.name)}님, 처음이시네요</div>
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 20px;">앞으로 수정·삭제할 때 확인할 4자리 PIN을 정해주세요</p>
-      <div class="field"><input type="password" id="pinSetupInput" maxlength="4" inputmode="numeric" placeholder="4자리 숫자"></div>
-      <div class="field"><input type="password" id="pinSetupInput2" maxlength="4" inputmode="numeric" placeholder="한 번 더 입력"></div>
-      <p id="pinSetupErr" style="font-size:12px;color:var(--danger,#b5543f);min-height:16px;margin:6px 0 12px;"></p>
-      <button class="btn btn-primary" id="pinSetupBtn" style="width:100%;">설정 완료</button>
-    </div>`);
+    <div class="auth-title">${escapeHtml(user.name)}님, 처음이시네요</div>
+    <p class="sub">앞으로 수정·삭제할 때 확인할 4자리 PIN을 정해주세요</p>
+    <div class="field"><input type="password" id="pinSetupInput" maxlength="4" inputmode="numeric" placeholder="4자리 숫자"></div>
+    <div class="field"><input type="password" id="pinSetupInput2" maxlength="4" inputmode="numeric" placeholder="한 번 더 입력"></div>
+    <p id="pinSetupErr" class="err"></p>
+    <button class="btn btn-primary" id="pinSetupBtn">설정 완료</button>`);
   const submit = async ()=>{
     const p1 = el.querySelector('#pinSetupInput').value.trim();
     const p2 = el.querySelector('#pinSetupInput2').value.trim();
