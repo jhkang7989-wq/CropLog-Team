@@ -160,6 +160,15 @@ async function mergeGrowerGroup(gi){
 
 async function renderGrower(id){
   currentGrowerId = id;
+  // 다른 농가 상세로 넘어올 때, 데이터를 새로 불러오는 동안 이전 농가 내용이
+  // 잠깐 그대로 보이던 문제 — 화면이 바뀌자마자(await 전에) 먼저 비운다.
+  document.getElementById('growerTitle').textContent = '';
+  document.getElementById('growerStats').innerHTML = '';
+  document.getElementById('growerInfoCard').classList.add('hidden');
+  document.getElementById('growerNoteList').innerHTML = '';
+  document.getElementById('growerAddrSection').classList.add('hidden');
+  document.getElementById('growerTrialList').innerHTML = '';
+
   const g = await idbGet('growers', id);
   if(!g){ go('growers'); return; }
   document.getElementById('growerTitle').textContent = g.name;

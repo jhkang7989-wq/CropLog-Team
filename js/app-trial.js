@@ -302,6 +302,18 @@ function switchDetailTab(tab){
 async function renderDetail(trialId){
   switchDetailTab('timeline');
   exitTimelineSelectMode();
+  // 다른 시교 상세로 넘어올 때, 데이터를 새로 불러오는 동안 이전 시교 내용이
+  // 잠깐 그대로 보이던 문제 — 화면이 바뀌자마자(await 전에) 먼저 비운다.
+  document.getElementById('detailTitle').textContent = '';
+  document.getElementById('detailStats').classList.add('hidden');
+  document.getElementById('detailDates').classList.add('hidden');
+  document.getElementById('detailAddressList').innerHTML = '';
+  document.getElementById('timelineSubjectTabs').classList.add('hidden');
+  document.getElementById('timelineAll').innerHTML = '';
+  document.getElementById('noteList').innerHTML = '';
+  document.getElementById('evalHistoryList').innerHTML = '';
+  allPhotosCache = [];
+
   const t = await idbGet('trials', trialId);
   if(!t){ go('home'); return; }
   const c = await idbGet('crops', t.cropId);
