@@ -259,10 +259,19 @@ let cmpSlots = [null, null]; // 2~4개 photoId (또는 null)
 // 원래 안 섞이니 탭 자체를 안 보여줌.
 let timelineSubjectFilter = 'own';
 let timelineAgeBase = null, timelineAgeLabel = '';
+// 시교 하나가 시즌 내내 쌓이면 사진이 수백 장까지 늘어날 수 있어, 한 번에 다
+// 그리지 않고 최근 날짜부터 이만큼씩만 그린 뒤 "더보기"로 이어서 그린다.
+const TIMELINE_PAGE_SIZE = 20;
+let timelineShowCount = TIMELINE_PAGE_SIZE;
 function setTimelineSubject(subject){
   timelineSubjectFilter = subject;
+  timelineShowCount = TIMELINE_PAGE_SIZE;
   document.getElementById('timelineSubjectOwn').classList.toggle('active', subject==='own');
   document.getElementById('timelineSubjectRef').classList.toggle('active', subject==='reference');
+  renderTimelineList();
+}
+function showMoreTimeline(){
+  timelineShowCount += TIMELINE_PAGE_SIZE;
   renderTimelineList();
 }
 function renderTimelineList(){
@@ -274,7 +283,9 @@ function renderTimelineList(){
   if(dateKeys.length===0){
     timelineAll.innerHTML = '<p class="empty">아직 등록된 사진이 없어요.</p>';
   } else {
-    timelineAll.innerHTML = dateKeys.map(d=>{
+    const shownKeys = dateKeys.slice(0, timelineShowCount);
+    const remaining = dateKeys.length - shownKeys.length;
+    timelineAll.innerHTML = shownKeys.map(d=>{
       const age = daysBetweenDates(timelineAgeBase, d);
       const ageBadge = (age !== null && age >= 0) ? `<span class="age">${timelineAgeLabel.replace(' 후','')} +${age}일</span>` : '';
       return `
@@ -284,7 +295,7 @@ function renderTimelineList(){
           ${grouped[d].map(p=>`<div class="photo-thumb" data-photo-id="${p.id}"><img loading="lazy" decoding="async" draggable="false" oncontextmenu="return false;" src="${getPhotoThumbUrl(p)}">${p.isMarked?'<div class="mark-badge">'+icon('pen',11)+'</div>':''}<div class="chk">${icon('check',12)}</div></div>`).join('')}
         </div>
       </div>`;
-    }).join('');
+    }).join('') + (remaining>0 ? `<button type="button" class="btn btn-ghost timeline-more" onclick="showMoreTimeline()">이전 사진 더보기 (${remaining}일 더 있음)</button>` : '');
   }
   initTimelineDelegation();
 }
@@ -313,6 +324,7 @@ async function renderDetail(trialId){
   document.getElementById('noteList').innerHTML = '';
   document.getElementById('evalHistoryList').innerHTML = '';
   allPhotosCache = [];
+  timelineShowCount = TIMELINE_PAGE_SIZE;
 
   const t = await idbGet('trials', trialId);
   if(!t){ go('home'); return; }

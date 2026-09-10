@@ -400,6 +400,7 @@
   .mark-color-custom-row input[type=color]{width:36px;height:36px;border:none;border-radius:6px;padding:0;background:none;cursor:pointer;}
 
   .date-group{margin-bottom:16px;}
+  .timeline-more{margin-top:4px;}
   .date-head{display:flex;align-items:baseline;gap:7px;font-size:12px;font-weight:700;color:var(--soil);margin-bottom:7px;}
   .date-head .age{font-size:10.5px;font-weight:700;color:var(--leaf);background:rgba(22,163,74,0.10);border-radius:4px;padding:2px 7px;}
   .date-head .cnt{font-size:10px;font-weight:400;color:var(--muted);margin-left:auto;}

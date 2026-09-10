@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 78;
+const APP_VERSION = 79;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================

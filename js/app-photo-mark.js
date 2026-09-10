@@ -640,7 +640,7 @@ function renderLightbox(){
     <div class="lb-comment" id="lbComment" style="display:none;"></div>
     <div class="lb-imgwrap" id="lbImgWrap">
       <div class="lb-scroller" id="lbScroller">
-        ${allPhotosCache.map((ph,i)=>`<div class="lb-page" data-idx="${i}"><img data-full="${getPhotoUrl(ph)}" src="${getPhotoThumbUrl(ph)}"></div>`).join('')}
+        ${allPhotosCache.map((ph,i)=>`<div class="lb-page" data-idx="${i}"><img loading="lazy" decoding="async" data-full="${getPhotoUrl(ph)}" src="${getPhotoThumbUrl(ph)}"></div>`).join('')}
       </div>
       <div class="lb-nav lb-prev" id="lbPrevBtn" onclick="lightboxNav(-1)">${icon('chevLeft',20)}</div>
       <div class="lb-nav lb-next" id="lbNextBtn" onclick="lightboxNav(1)">${icon('chevRight',20)}</div>
