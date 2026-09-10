@@ -354,7 +354,11 @@
   .mark-overlay{position:fixed;inset:0;background:#14120E;z-index:85;display:flex;flex-direction:column;overscroll-behavior:none;}
   .mark-topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;font-size:13px;font-weight:700;}
   .mark-topbar .link{color:#fff;font-weight:700;}
-  .mark-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;}
+  .mark-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;position:relative;}
+  .mark-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+  .mark-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.22);border-top-color:#fff;border-radius:50%;animation:markSpin .7s linear infinite;}
+  @keyframes markSpin{ to{transform:rotate(360deg);} }
+  @media (prefers-reduced-motion: reduce){ .mark-spinner{animation-duration:1.4s;} }
   .mark-canvas-inner{position:relative;}
   .mte{position:absolute;transform:translate(-50%,-50%);touch-action:none;white-space:nowrap;}
   .mte-text{font-weight:800;font-family:sans-serif;padding:2px 6px;border:1.5px dashed rgba(255,255,255,0.7);cursor:move;}

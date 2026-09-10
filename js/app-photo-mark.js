@@ -12,7 +12,10 @@ async function openMarkingEditor(photoId){
       <span>사진 마킹</span>
       <span class="link" onclick="saveMarking()">저장</span>
     </div>
-    <div class="mark-canvas-wrap" id="markCanvasWrap"><div class="mark-canvas-inner" id="markCanvasInner"><canvas id="markCanvas"></canvas></div></div>
+    <div class="mark-canvas-wrap" id="markCanvasWrap">
+      <div class="mark-canvas-inner" id="markCanvasInner"><canvas id="markCanvas"></canvas></div>
+      <div class="mark-loading" id="markLoading"><div class="mark-spinner"></div></div>
+    </div>
     <div class="mark-toolbar">
       <div class="mark-extra-row" id="markExtraRow"></div>
       <div class="mark-main-row">
@@ -39,9 +42,11 @@ async function openMarkingEditor(photoId){
   // canvas.toBlob()이 그냥 실패한다(마킹 저장이 안 되는 원인) — CORS 모드로 받아온다.
   img.crossOrigin = 'anonymous';
   img.onload = ()=> initMarkCanvas(img, photoId);
+  img.onerror = ()=>{ removeIfExists('markOverlay'); toast('사진을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'); };
   img.src = getPhotoUrl(p);
 }
 function initMarkCanvas(img, photoId){
+  removeIfExists('markLoading');
   const wrap = document.getElementById('markCanvasWrap');
   const inner = document.getElementById('markCanvasInner');
   const canvas = document.getElementById('markCanvas');
