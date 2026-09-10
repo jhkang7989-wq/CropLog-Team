@@ -297,11 +297,12 @@ function openGrowerNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('growerNoteText','**',()=>saveGrowerNoteDraft('${noteId||''}'))">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('growerNoteText','__',()=>saveGrowerNoteDraft('${noteId||''}'))">U</button>
+            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('growerNoteText','**',()=>{saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText');})">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('growerNoteText','__',()=>{saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText');})">U</button>
           </span>
         </label>
-        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}')"></textarea>
+        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText')"></textarea>
+        <div id="growerNotePreview" class="note-preview hidden"></div>
       </div>
       <div class="btn-row">
         ${noteId? `<button class="btn btn-ghost" onclick="clearGrowerNoteDraft('${noteId}'); cancelAction(()=>closeModal('growerNoteModal'))">취소</button>`:''}
@@ -320,6 +321,7 @@ function openGrowerNoteModal(noteId){
     document.getElementById('growerNoteText').value = draft.text;
     toast('이어서 작성하던 메모를 불러왔어요');
   }
+  updateNotePreview('growerNotePreview','growerNoteText');
 }
 async function saveGrowerNote(noteId){
   const date = document.getElementById('growerNoteDate').value || todayStr();

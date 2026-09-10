@@ -408,6 +408,17 @@ function collapseBlankLines(s){ return (s||'').replace(/\n{2,}/g, '\n').trim(); 
 function formatNoteText(escaped){
   return escaped.replace(/\*\*([^\n*]+)\*\*/g, '<b>$1</b>').replace(/__([^\n_]+)__/g, '<u>$1</u>');
 }
+// 작성 중엔 **, __ 표시가 그대로 글자로 보여서 어색하다는 피드백 — textarea 자체를
+// 리치텍스트로 바꾸는 대신(줄바꿈 처리가 까다롭고 위험도가 높음), 바로 아래에 저장했을
+// 때 어떻게 보일지 실시간으로 보여주는 미리보기를 둔다.
+function updateNotePreview(previewId, textareaId){
+  const el = document.getElementById(previewId);
+  if(!el) return;
+  const value = document.getElementById(textareaId).value;
+  if(!value.trim()){ el.classList.add('hidden'); el.innerHTML=''; return; }
+  el.classList.remove('hidden');
+  el.innerHTML = formatNoteText(escapeHtml(collapseBlankLines(value)));
+}
 function wrapTextareaSelection(textareaId, marker, onChange){
   const ta = document.getElementById(textareaId);
   const s = ta.selectionStart, e = ta.selectionEnd, value = ta.value;
@@ -445,11 +456,12 @@ function openNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('noteText','**',()=>saveNoteDraft('${noteId||''}'))">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('noteText','__',()=>saveNoteDraft('${noteId||''}'))">U</button>
+            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('noteText','**',()=>{saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText');})">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('noteText','__',()=>{saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText');})">U</button>
           </span>
         </label>
-        <textarea id="noteText" placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}')"></textarea>
+        <textarea id="noteText" placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText')"></textarea>
+        <div id="notePreview" class="note-preview hidden"></div>
       </div>
       <div class="btn-row">
         ${noteId? `<button class="btn btn-ghost" onclick="clearNoteDraft('${noteId}'); cancelAction(()=>closeModal('noteModal'))">취소</button>`:''}
@@ -463,11 +475,13 @@ function openNoteModal(noteId){
     idbGet('notes', noteId).then(n=>{
       if(n){ document.getElementById('noteDate').value = n.date; document.getElementById('noteText').value = n.text; }
       if(draft){ document.getElementById('noteDate').value = draft.date || todayStr(); document.getElementById('noteText').value = draft.text; toast('이어서 작성하던 메모를 불러왔어요'); }
+      updateNotePreview('notePreview','noteText');
     });
   } else if(draft){
     document.getElementById('noteDate').value = draft.date || todayStr();
     document.getElementById('noteText').value = draft.text;
     toast('이어서 작성하던 메모를 불러왔어요');
+    updateNotePreview('notePreview','noteText');
   }
 }
 async function saveNote(noteId){

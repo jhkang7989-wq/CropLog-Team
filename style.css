@@ -241,6 +241,11 @@
     padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;
   }
   .field textarea{resize:vertical;min-height:60px;}
+  .note-preview{
+    margin-top:6px;padding:9px 12px;background:var(--cream);border:1px dashed var(--line);border-radius:8px;
+    font-size:13px;line-height:1.5;color:var(--ink);white-space:pre-wrap;word-break:break-word;
+  }
+  .note-preview:before{content:'미리보기';display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;}
   .autofill-tag{display:inline-block;font-size:9px;background:var(--cream);color:var(--soil);padding:2px 7px;border-radius:4px;margin-left:6px;}
   .status-tag{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;background:var(--cream);color:var(--muted);vertical-align:1px;}
   .status-tag.done{color:#2C6E63;background:rgba(44,110,99,0.12);}
