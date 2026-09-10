@@ -186,7 +186,7 @@ async function viewSavedComparison(id){
   overlay.style.flexDirection = 'column';
   overlay.style.alignItems = 'stretch';
   overlay.innerHTML = `
-    <div class="lb-top" style="justify-content:flex-end;"><span onclick="removeIfExists('savedCmpViewer')">${icon('close',18)}</span></div>
+    <div class="lb-top" style="justify-content:flex-end;"><span onclick="animateModalClose(document.getElementById('savedCmpViewer'))">${icon('close',18)}</span></div>
     <div class="scv-wrap" id="scvWrap"><img id="scvImg" src="${comparisonFileUrl(c.id)}"></div>
     <div class="lb-actions">
       <a class="a primary" onclick="shareSavedComparison('${id}')">공유</a>
@@ -194,7 +194,7 @@ async function viewSavedComparison(id){
     </div>`;
   document.body.appendChild(overlay);
   const wrap = document.getElementById('scvWrap');
-  wrap.addEventListener('click', (e)=>{ if(e.target.id==='scvWrap') removeIfExists('savedCmpViewer'); });
+  wrap.addEventListener('click', (e)=>{ if(e.target.id==='scvWrap') animateModalClose(document.getElementById('savedCmpViewer')); });
   attachSimpleZoomPan(wrap, document.getElementById('scvImg'));
 }
 function attachSimpleZoomPan(wrap, img){
@@ -296,7 +296,7 @@ async function deleteSavedComparison(id, scope, trialId){
   try{
     await withPin(pin, ()=> idbDelete('comparisons', id));
   }catch(e){ toast(e.message); return; }
-  removeIfExists('savedCmpViewer');
+  animateModalClose(document.getElementById('savedCmpViewer'));
   toast('삭제했어요');
   renderSavedComparisons(scope, trialId||null);
 }

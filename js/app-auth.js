@@ -155,10 +155,10 @@ function promptPin({title='PIN 확인', message='본인 확인을 위해 PIN을 
       </div>`;
     document.body.appendChild(backdrop);
     attachBackdropDismiss(backdrop, ()=>resolve(null));
-    document.getElementById('pinPromptCancel').onclick = ()=>{ removeIfExists('pinPromptModal'); resolve(null); };
+    document.getElementById('pinPromptCancel').onclick = ()=>{ animateModalClose(backdrop); resolve(null); };
     document.getElementById('pinPromptOk').onclick = ()=>{
       const v = document.getElementById('pinPromptInput').value.trim();
-      removeIfExists('pinPromptModal');
+      animateModalClose(backdrop);
       resolve(v || null);
     };
     setTimeout(()=>{ const i=document.getElementById('pinPromptInput'); if(i) i.focus(); }, 150);

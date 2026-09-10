@@ -405,7 +405,7 @@ function showLandscapePhotos(photoIds){
         ${photosArr.map(p=>`<div class="lr-imgbox"><img src="${getPhotoUrl(p)}"></div>`).join('')}
       </div>`;
     document.body.appendChild(overlay);
-    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.remove(); });
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) animateModalClose(overlay); });
     enableRotatorZoom(document.getElementById('landscapeRotator'));
   });
 }

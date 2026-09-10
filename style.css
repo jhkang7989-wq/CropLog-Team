@@ -29,6 +29,17 @@
   .modal-sheet{ animation: sheetUp .24s cubic-bezier(.22,.61,.36,1); }
   @keyframes lightboxIn{ from{opacity:0;} to{opacity:1;} }
   .lightbox{ animation: lightboxIn .18s ease; }
+  @keyframes backdropOut{ from{opacity:1;} to{opacity:0;} }
+  @keyframes sheetDown{ from{opacity:1; transform:translateY(0);} to{opacity:0; transform:translateY(16px);} }
+  @keyframes lightboxOut{ from{opacity:1;} to{opacity:0;} }
+  .modal-backdrop.modal-closing{ animation: backdropOut .16s ease forwards; pointer-events:none; }
+  .modal-sheet.modal-sheet-closing{ animation: sheetDown .16s cubic-bezier(.4,0,1,1) forwards; }
+  .lightbox.modal-closing{ animation: lightboxOut .16s ease forwards; }
+  @media (prefers-reduced-motion: reduce){
+    .modal-backdrop.modal-closing, .modal-sheet.modal-sheet-closing, .lightbox.modal-closing, .landscape-overlay.modal-closing{
+      animation:none !important; opacity:0 !important;
+    }
+  }
   .btn, .btn-mini, .action, .back, .list-item, .recent-item, .crop-tile, .photo-thumb, .tab, .settings-row{
     transition: transform .12s ease, opacity .12s ease, background-color .15s ease, border-color .15s ease;
   }
@@ -334,7 +345,8 @@
   .xcmp-col .imgbox img{width:100%;height:100%;object-fit:cover;}
   .xcmp-label{font-size:11px;color:var(--ink);text-align:center;line-height:1.4;}
   .xcmp-label .crop-dot{margin-right:4px;}
-  .landscape-overlay{position:fixed;inset:0;background:#14120E;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;touch-action:none;}
+  .landscape-overlay{position:fixed;inset:0;background:#14120E;z-index:70;display:flex;align-items:center;justify-content:center;overflow:hidden;overscroll-behavior:none;touch-action:none;animation: lightboxIn .18s ease;}
+  .landscape-overlay.modal-closing{ animation: lightboxOut .16s ease forwards; }
   .landscape-rotator{width:100vh;height:100vw;transform:rotate(90deg);display:flex;flex-direction:row;gap:8px;will-change:transform;}
   .lr-imgbox{flex:1;background:#000;overflow:hidden;min-width:0;}
   .lr-imgbox img{width:100%;height:100%;object-fit:contain;}

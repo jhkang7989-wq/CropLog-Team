@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 76;
+const APP_VERSION = 77;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -695,9 +695,9 @@ function scrollActiveMainTop(){
 window.addEventListener('popstate', ()=>{
   // 모달이 열려있으면 뒤로가기로 모달만 닫기
   const openModal = document.querySelector('.modal-backdrop');
-  if(openModal){ openModal.remove(); history.pushState({navIndex: navStack.length-1}, ''); return; }
+  if(openModal){ animateModalClose(openModal); history.pushState({navIndex: navStack.length-1}, ''); return; }
   const lightbox = document.getElementById('lightboxEl');
-  if(lightbox){ lightbox.remove(); history.pushState({navIndex: navStack.length-1}, ''); return; }
+  if(lightbox){ animateModalClose(lightbox); history.pushState({navIndex: navStack.length-1}, ''); return; }
 
   if(navStack.length > 1){
     navStack.pop();

@@ -195,11 +195,19 @@ async function toggleScheduleReminderSetting(){
 
 /* ================= 공용 모달 (확인/알림) ================= */
 function removeIfExists(id){ document.querySelectorAll('#'+id).forEach(el=>el.remove()); }
-function closeModal(id){ removeIfExists(id); }
+const MODAL_CLOSE_MS = 160;
+function animateModalClose(el){
+  if(!el || el.classList.contains('modal-closing')) return;
+  el.classList.add('modal-closing');
+  const sheet = el.querySelector('.modal-sheet');
+  if(sheet) sheet.classList.add('modal-sheet-closing');
+  setTimeout(()=> el.remove(), MODAL_CLOSE_MS);
+}
+function closeModal(id){ animateModalClose(document.getElementById(id)); }
 function attachBackdropDismiss(backdrop, onDismiss){
   backdrop.addEventListener('click', (e)=>{
     if(e.target === backdrop){
-      backdrop.remove();
+      animateModalClose(backdrop);
       if(onDismiss) onDismiss();
     }
   });
@@ -220,8 +228,8 @@ function showConfirm({title, message, confirmLabel='확인', cancelLabel='취소
         </div>
       </div>`;
     document.body.appendChild(backdrop);
-    document.getElementById('confirmCancelBtn').onclick = ()=>{ removeIfExists('confirmModal'); resolve(false); };
-    document.getElementById('confirmOkBtn').onclick = ()=>{ if(appSettings.feedback) vibrate(danger?[15,60,15]:15); removeIfExists('confirmModal'); resolve(true); };
+    document.getElementById('confirmCancelBtn').onclick = ()=>{ animateModalClose(backdrop); resolve(false); };
+    document.getElementById('confirmOkBtn').onclick = ()=>{ if(appSettings.feedback) vibrate(danger?[15,60,15]:15); animateModalClose(backdrop); resolve(true); };
     attachBackdropDismiss(backdrop, ()=>resolve(false));
   });
 }
@@ -237,7 +245,7 @@ function showAlert({title, message, okLabel='확인'}){
         <button class="btn btn-primary" id="alertOkBtn">${okLabel}</button>
       </div>`;
     document.body.appendChild(backdrop);
-    document.getElementById('alertOkBtn').onclick = ()=>{ removeIfExists('alertModal'); resolve(true); };
+    document.getElementById('alertOkBtn').onclick = ()=>{ animateModalClose(backdrop); resolve(true); };
     attachBackdropDismiss(backdrop, ()=>resolve(true));
   });
 }
@@ -258,10 +266,10 @@ function promptText({title, placeholder='', defaultValue=''}){
       </div>`;
     document.body.appendChild(backdrop);
     attachBackdropDismiss(backdrop, ()=>resolve(null));
-    document.getElementById('promptCancelBtn').onclick = ()=>{ removeIfExists('promptModal'); resolve(null); };
+    document.getElementById('promptCancelBtn').onclick = ()=>{ animateModalClose(backdrop); resolve(null); };
     document.getElementById('promptOkBtn').onclick = ()=>{
       const v = document.getElementById('promptInput').value.trim();
-      removeIfExists('promptModal'); resolve(v);
+      animateModalClose(backdrop); resolve(v);
     };
     setTimeout(()=>{ const el=document.getElementById('promptInput'); if(el) el.focus(); }, 150);
   });
@@ -331,14 +339,14 @@ async function saveEditedCrop(){
   if(!name){ toast('품목명을 입력해주세요'); return; }
   const color = window._editColor ? window._editColor() : '#4a7c59';
   await idbPut('crops', {id:editingCropId, name, color});
-  document.getElementById('cropEditModal').remove();
+  closeModal('cropEditModal');
   toast('저장했어요'); renderCrops();
 }
 async function deleteCropConfirm(){
   const ok = await showConfirm({title:'품목 삭제', message:'이 품목을 삭제할까요? 이미 등록된 시교의 분류 표시에 영향을 줄 수 있어요.', confirmLabel:'삭제', danger:true});
   if(!ok) return;
   await idbDelete('crops', editingCropId);
-  document.getElementById('cropEditModal').remove();
+  closeModal('cropEditModal');
   toast('삭제했어요'); renderCrops();
 }
 

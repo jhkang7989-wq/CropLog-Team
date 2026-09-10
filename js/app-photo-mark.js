@@ -858,7 +858,7 @@ function lightboxNav(dir){
   scrollLightboxTo(lightboxIndex, true);
   updateLightboxChrome();
 }
-function closeLightbox(){ removeIfExists('lightboxEl'); }
+function closeLightbox(){ animateModalClose(document.getElementById('lightboxEl')); }
 function rotateImageBlob(blob, degrees){
   return new Promise((resolve, reject)=>{
     createImageBitmap(blob).then(bitmap=>{
