@@ -279,7 +279,7 @@ async function renderGrowerNotes(growerId){
 function growerNoteDraftKey(noteId){ return `cl_notedraft_g_${currentGrowerId}_${noteId||'new'}`; }
 function saveGrowerNoteDraft(noteId){
   try{ localStorage.setItem(growerNoteDraftKey(noteId), JSON.stringify({
-    date: document.getElementById('growerNoteDate').value, text: document.getElementById('growerNoteText').value
+    date: document.getElementById('growerNoteDate').value, text: noteEditorText('growerNoteText')
   })); }catch(e){}
 }
 function clearGrowerNoteDraft(noteId){ try{ localStorage.removeItem(growerNoteDraftKey(noteId)); }catch(e){} }
@@ -301,12 +301,11 @@ function openGrowerNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('growerNoteText','**',()=>{saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText');})">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('growerNoteText','__',()=>{saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText');})">U</button>
+            <button type="button" class="btn-mini" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','bold',()=>saveGrowerNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','underline',()=>saveGrowerNoteDraft('${noteId||''}'))">U</button>
           </span>
         </label>
-        <textarea id="growerNoteText" placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}');updateNotePreview('growerNotePreview','growerNoteText')"></textarea>
-        <div id="growerNotePreview" class="note-preview hidden"></div>
+        <div id="growerNoteText" class="note-editor" contenteditable="true" data-placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}')"></div>
       </div>
       <div class="btn-row">
         ${noteId? `<button class="btn btn-ghost" onclick="clearGrowerNoteDraft('${noteId}'); cancelAction(()=>closeModal('growerNoteModal'))">취소</button>`:''}
@@ -315,21 +314,21 @@ function openGrowerNoteModal(noteId){
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
+  attachNoteEditorPaste('growerNoteText');
   const draft = loadGrowerNoteDraft(noteId);
   if(noteId){
     const n = currentGrowerNotesCache.find(x=>x.id===noteId);
-    if(n){ document.getElementById('growerNoteDate').value = n.date; document.getElementById('growerNoteText').value = n.text; }
+    if(n){ document.getElementById('growerNoteDate').value = n.date; setNoteEditorText('growerNoteText', n.text); }
   }
   if(draft){
     document.getElementById('growerNoteDate').value = draft.date || todayStr();
-    document.getElementById('growerNoteText').value = draft.text;
+    setNoteEditorText('growerNoteText', draft.text);
     toast('이어서 작성하던 메모를 불러왔어요');
   }
-  updateNotePreview('growerNotePreview','growerNoteText');
 }
 async function saveGrowerNote(noteId){
   const date = document.getElementById('growerNoteDate').value || todayStr();
-  const text = collapseBlankLines(document.getElementById('growerNoteText').value);
+  const text = collapseBlankLines(noteEditorText('growerNoteText'));
   if(!text){ toast('메모 내용을 입력해주세요'); return; }
   const id = noteId || uid();
   try{

@@ -252,11 +252,17 @@
     padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;
   }
   .field textarea{resize:vertical;min-height:60px;}
-  .note-preview{
-    margin-top:6px;padding:9px 12px;background:var(--cream);border:1px dashed var(--line);border-radius:8px;
-    font-size:13px;line-height:1.5;color:var(--ink);white-space:pre-wrap;word-break:break-word;
+  /* 메모 입력창 — 굵게/밑줄이 타이핑하는 그대로 보여야 해서 textarea가 아니라
+     contenteditable이다. 전역 *{user-select:none}에 걸리지 않게 여기서 되돌린다
+     (글자를 끌어서 선택할 수 있어야 그 부분만 굵게 만들 수 있음). */
+  .note-editor{
+    width:100%;background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;line-height:1.6;
+    min-height:84px;max-height:40vh;overflow-y:auto;white-space:pre-wrap;word-break:break-word;
+    -webkit-user-select:text;user-select:text;-webkit-touch-callout:default;text-align:left;
   }
-  .note-preview:before{content:'미리보기';display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;}
+  .note-editor:focus{outline:none;border-color:var(--leaf);}
+  .note-editor:empty:before{content:attr(data-placeholder);color:var(--muted);}
   .autofill-tag{display:inline-block;font-size:9px;background:var(--cream);color:var(--soil);padding:2px 7px;border-radius:4px;margin-left:6px;}
   .status-tag{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;background:var(--cream);color:var(--muted);vertical-align:1px;}
   .status-tag.done{color:#2C6E63;background:rgba(44,110,99,0.12);}

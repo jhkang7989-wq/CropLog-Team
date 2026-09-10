@@ -408,32 +408,93 @@ function collapseBlankLines(s){ return (s||'').replace(/\n{2,}/g, '\n').trim(); 
 function formatNoteText(escaped){
   return escaped.replace(/\*\*([^\n*]+)\*\*/g, '<b>$1</b>').replace(/__([^\n_]+)__/g, '<u>$1</u>');
 }
-// 작성 중엔 **, __ 표시가 그대로 글자로 보여서 어색하다는 피드백 — textarea 자체를
-// 리치텍스트로 바꾸는 대신(줄바꿈 처리가 까다롭고 위험도가 높음), 바로 아래에 저장했을
-// 때 어떻게 보일지 실시간으로 보여주는 미리보기를 둔다.
-function updateNotePreview(previewId, textareaId){
-  const el = document.getElementById(previewId);
-  if(!el) return;
-  const value = document.getElementById(textareaId).value;
-  if(!value.trim()){ el.classList.add('hidden'); el.innerHTML=''; return; }
-  el.classList.remove('hidden');
-  el.innerHTML = formatNoteText(escapeHtml(collapseBlankLines(value)));
+// 메모 입력창은 textarea가 아니라 contenteditable이다 — 작성 중에 마커가 글자로
+// 그대로 보이는 게 어색하다는 피드백이라, 타이핑하는 그 순간부터 굵게/밑줄이 눈에
+// 보이게 했다. 저장 형식은 예전 그대로 마커가 들어간 텍스트라서 서버나 이미 저장된
+// 메모는 손댈 게 없고, 아래 두 함수가 화면(HTML) ↔ 저장 텍스트를 옮긴다.
+function noteTextToHtml(text){
+  return formatNoteText(escapeHtml(text||'')).replace(/\n/g, '<br>');
 }
-function wrapTextareaSelection(textareaId, marker, onChange){
-  const ta = document.getElementById(textareaId);
-  const s = ta.selectionStart, e = ta.selectionEnd, value = ta.value;
-  const selected = value.slice(s, e);
-  ta.value = value.slice(0, s) + marker + selected + marker + value.slice(e);
-  ta.focus();
-  ta.setSelectionRange(s + marker.length, e + marker.length);
+function isBoldEl(el){
+  if(el.tagName==='B' || el.tagName==='STRONG') return true;
+  const w = (el.style && el.style.fontWeight) || '';
+  return w==='bold' || parseInt(w,10) >= 600;
+}
+function isUnderlineEl(el){
+  if(el.tagName==='U') return true;
+  return !!(el.style && (el.style.textDecoration||'').includes('underline'));
+}
+function noteHtmlToText(root){
+  const runs = [];
+  const walk = (node, bold, under)=>{
+    node.childNodes.forEach(child=>{
+      if(child.nodeType === 3){
+        const t = child.nodeValue.replace(/\u00a0/g, ' ');
+        if(t) runs.push({text:t, bold, under});
+        return;
+      }
+      if(child.nodeType !== 1) return;
+      if(child.tagName === 'BR'){ runs.push({br:true}); return; }
+      const isBlock = child.tagName==='DIV' || child.tagName==='P';
+      if(isBlock && runs.length) runs.push({br:true});
+      walk(child, bold || isBoldEl(child), under || isUnderlineEl(child));
+    });
+  };
+  walk(root, false, false);
+  // 브라우저가 글자를 여러 조각으로 쪼개놓는 경우가 많다. 굵은 구간을 통째로 모은 뒤
+  // 그 안에서 밑줄 구간만 따로 감싸야, 마커가 중간에 끊기지 않고 겹친 서식도
+  // 깔끔한 한 덩어리로 저장된다.
+  let out = '';
+  for(let i=0; i<runs.length; ){
+    if(runs[i].br){ out += '\n'; i++; continue; }
+    const bold = runs[i].bold;
+    let inner = '';
+    while(i<runs.length && !runs[i].br && runs[i].bold===bold){
+      const under = runs[i].under;
+      let text = '';
+      while(i<runs.length && !runs[i].br && runs[i].bold===bold && runs[i].under===under){
+        text += runs[i].text; i++;
+      }
+      inner += under ? ('__'+text+'__') : text;
+    }
+    out += bold ? ('**'+inner+'**') : inner;
+  }
+  return out.replace(/\n+$/, '');
+}
+function noteEditorText(editorId){
+  const el = document.getElementById(editorId);
+  return el ? noteHtmlToText(el) : '';
+}
+function setNoteEditorText(editorId, text){
+  const el = document.getElementById(editorId);
+  if(el) el.innerHTML = noteTextToHtml(text);
+}
+/* 글자를 선택해두고 B를 누르면 그 부분이, 커서만 있으면 그다음 타이핑부터 굵어진다.
+   버튼을 누를 때 입력창의 선택이 풀리면 안 되므로 호출부에서 mousedown을 막아둔다. */
+function toggleNoteFormat(editorId, cmd, onChange){
+  const el = document.getElementById(editorId);
+  if(!el) return;
+  el.focus();
+  try{ document.execCommand('styleWithCSS', false, false); }catch(e){}
+  document.execCommand(cmd, false, null);
   if(onChange) onChange();
+}
+/* 다른 앱에서 복사해온 색·크기가 딸려오지 않게 붙여넣기는 글자만 받는다. */
+function attachNoteEditorPaste(editorId){
+  const el = document.getElementById(editorId);
+  if(!el) return;
+  el.addEventListener('paste', (e)=>{
+    e.preventDefault();
+    const t = ((e.clipboardData || window.clipboardData) || {getData:()=>''}).getData('text/plain');
+    document.execCommand('insertText', false, t);
+  });
 }
 // 메모 작성 중 다른 곳으로 넘어가거나(뒤로가기 등) 실수로 닫히면 내용이 그냥
 // 사라지던 문제 — 입력할 때마다 로컬에 초안을 저장해뒀다가 다시 열면 이어서 쓰게 한다.
 function noteDraftKey(noteId){ return `cl_notedraft_t_${currentTrialId}_${noteId||'new'}`; }
 function saveNoteDraft(noteId){
   try{ localStorage.setItem(noteDraftKey(noteId), JSON.stringify({
-    date: document.getElementById('noteDate').value, text: document.getElementById('noteText').value
+    date: document.getElementById('noteDate').value, text: noteEditorText('noteText')
   })); }catch(e){}
 }
 function clearNoteDraft(noteId){ try{ localStorage.removeItem(noteDraftKey(noteId)); }catch(e){} }
@@ -456,12 +517,11 @@ function openNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onclick="wrapTextareaSelection('noteText','**',()=>{saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText');})">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onclick="wrapTextareaSelection('noteText','__',()=>{saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText');})">U</button>
+            <button type="button" class="btn-mini" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','bold',()=>saveNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','underline',()=>saveNoteDraft('${noteId||''}'))">U</button>
           </span>
         </label>
-        <textarea id="noteText" placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}');updateNotePreview('notePreview','noteText')"></textarea>
-        <div id="notePreview" class="note-preview hidden"></div>
+        <div id="noteText" class="note-editor" contenteditable="true" data-placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}')"></div>
       </div>
       <div class="btn-row">
         ${noteId? `<button class="btn btn-ghost" onclick="clearNoteDraft('${noteId}'); cancelAction(()=>closeModal('noteModal'))">취소</button>`:''}
@@ -470,23 +530,22 @@ function openNoteModal(noteId){
     </div>`;
   document.body.appendChild(backdrop);
   attachBackdropDismiss(backdrop);
+  attachNoteEditorPaste('noteText');
   const draft = loadNoteDraft(noteId);
   if(noteId){
     idbGet('notes', noteId).then(n=>{
-      if(n){ document.getElementById('noteDate').value = n.date; document.getElementById('noteText').value = n.text; }
-      if(draft){ document.getElementById('noteDate').value = draft.date || todayStr(); document.getElementById('noteText').value = draft.text; toast('이어서 작성하던 메모를 불러왔어요'); }
-      updateNotePreview('notePreview','noteText');
+      if(n){ document.getElementById('noteDate').value = n.date; setNoteEditorText('noteText', n.text); }
+      if(draft){ document.getElementById('noteDate').value = draft.date || todayStr(); setNoteEditorText('noteText', draft.text); toast('이어서 작성하던 메모를 불러왔어요'); }
     });
   } else if(draft){
     document.getElementById('noteDate').value = draft.date || todayStr();
-    document.getElementById('noteText').value = draft.text;
+    setNoteEditorText('noteText', draft.text);
     toast('이어서 작성하던 메모를 불러왔어요');
-    updateNotePreview('notePreview','noteText');
   }
 }
 async function saveNote(noteId){
   const date = document.getElementById('noteDate').value || todayStr();
-  const text = collapseBlankLines(document.getElementById('noteText').value);
+  const text = collapseBlankLines(noteEditorText('noteText'));
   if(!text){ toast('메모 내용을 입력해주세요'); return; }
   const id = noteId || uid();
   try{
