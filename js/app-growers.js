@@ -301,8 +301,8 @@ function openGrowerNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','bold',()=>saveGrowerNoteDraft('${noteId||''}'))">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','underline',()=>saveGrowerNoteDraft('${noteId||''}'))">U</button>
+            <button type="button" class="btn-mini note-fmt-b" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','bold',()=>saveGrowerNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini note-fmt-u" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('growerNoteText','underline',()=>saveGrowerNoteDraft('${noteId||''}'))">U</button>
           </span>
         </label>
         <div id="growerNoteText" class="note-editor" contenteditable="true" data-placeholder="특이사항, 방문 기록 등" oninput="saveGrowerNoteDraft('${noteId||''}')"></div>

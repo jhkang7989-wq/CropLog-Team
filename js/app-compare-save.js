@@ -477,9 +477,22 @@ function toggleNoteFormat(editorId, cmd, onChange){
   el.focus();
   try{ document.execCommand('styleWithCSS', false, false); }catch(e){}
   document.execCommand(cmd, false, null);
+  updateNoteFormatButtons(editorId);
   if(onChange) onChange();
 }
-/* 다른 앱에서 복사해온 색·크기가 딸려오지 않게 붙여넣기는 글자만 받는다. */
+// 지금 커서/선택 위치가 굵게·밑줄 상태인지에 맞춰 B/U 버튼을 눌린 것처럼 표시한다 —
+// 안 그러면 눌렀는지 안 눌렀는지 구분이 안 된다는 피드백이 있었음.
+function updateNoteFormatButtons(editorId){
+  const el = document.getElementById(editorId);
+  const modal = el && el.closest('.modal-sheet');
+  if(!modal) return;
+  const boldBtn = modal.querySelector('.note-fmt-b');
+  const underBtn = modal.querySelector('.note-fmt-u');
+  if(boldBtn) boldBtn.classList.toggle('active', document.queryCommandState('bold'));
+  if(underBtn) underBtn.classList.toggle('active', document.queryCommandState('underline'));
+}
+/* 다른 앱에서 복사해온 색·크기가 딸려오지 않게 붙여넣기는 글자만 받는다. 커서가
+   움직이거나(타이핑/화살표) 드래그로 선택 범위가 바뀔 때마다 B/U 버튼 상태도 맞춘다. */
 function attachNoteEditorPaste(editorId){
   const el = document.getElementById(editorId);
   if(!el) return;
@@ -488,6 +501,10 @@ function attachNoteEditorPaste(editorId){
     const t = ((e.clipboardData || window.clipboardData) || {getData:()=>''}).getData('text/plain');
     document.execCommand('insertText', false, t);
   });
+  const sync = ()=> updateNoteFormatButtons(editorId);
+  el.addEventListener('keyup', sync);
+  el.addEventListener('mouseup', sync);
+  el.addEventListener('touchend', sync);
 }
 // 메모 작성 중 다른 곳으로 넘어가거나(뒤로가기 등) 실수로 닫히면 내용이 그냥
 // 사라지던 문제 — 입력할 때마다 로컬에 초안을 저장해뒀다가 다시 열면 이어서 쓰게 한다.
@@ -517,8 +534,8 @@ function openNoteModal(noteId){
         <label style="display:flex;align-items:center;justify-content:space-between;">
           내용
           <span style="display:flex;gap:6px;">
-            <button type="button" class="btn-mini" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','bold',()=>saveNoteDraft('${noteId||''}'))">B</button>
-            <button type="button" class="btn-mini" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','underline',()=>saveNoteDraft('${noteId||''}'))">U</button>
+            <button type="button" class="btn-mini note-fmt-b" style="font-weight:800;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','bold',()=>saveNoteDraft('${noteId||''}'))">B</button>
+            <button type="button" class="btn-mini note-fmt-u" style="text-decoration:underline;" onmousedown="event.preventDefault()" onclick="toggleNoteFormat('noteText','underline',()=>saveNoteDraft('${noteId||''}'))">U</button>
           </span>
         </label>
         <div id="noteText" class="note-editor" contenteditable="true" data-placeholder="생육상태, 특이사항 등" oninput="saveNoteDraft('${noteId||''}')"></div>
