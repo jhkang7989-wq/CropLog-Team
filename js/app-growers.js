@@ -169,13 +169,17 @@ async function renderGrower(id){
   document.getElementById('growerAddrSection').classList.add('hidden');
   document.getElementById('growerTrialList').innerHTML = '';
 
-  const g = await idbGet('growers', id);
+  // 농가 정보/시교 목록/품목 목록이 서로 의존하지 않는 별개 요청인데 예전엔
+  // 순서대로 하나씩 기다렸다 — 그 사이마다 화면이 끊겨 보이는 원인이었다.
+  // 한꺼번에 보내고 다 모이면 한 번에 그린다.
+  const [g, trials, crops] = await Promise.all([
+    idbGet('growers', id),
+    idbGetAllByIndex('trials', 'growerId', id),
+    idbGetAll('crops'),
+  ]);
   if(!g){ go('growers'); return; }
   document.getElementById('growerTitle').textContent = g.name;
   currentGrowerAddresses = g.addresses || [];
-
-  const trials = await idbGetAllByIndex('trials', 'growerId', id);
-  const crops = await idbGetAll('crops');
   const cropMap = Object.fromEntries(crops.map(c=>[c.id,c]));
 
   const stats = [

@@ -326,9 +326,19 @@ async function renderDetail(trialId){
   allPhotosCache = [];
   timelineShowCount = TIMELINE_PAGE_SIZE;
 
-  const t = await idbGet('trials', trialId);
+  // 시교 상세는 여러 화면 영역(제목/사진/메모/평가/비교사진)이 각자 다른 API를
+  // 부르는데, 예전엔 순서대로 하나씩 기다렸다가 그렸다 — 그 사이마다 화면이
+  // 끊겨 보이는 원인이었다. 서로 의존하지 않는 요청들이니 한꺼번에 보내고,
+  // 다 모이면 한 번에 그린다.
+  exitSavedCmpSelectMode('detail');
+  const [t, photos] = await Promise.all([
+    idbGet('trials', trialId),
+    idbGetAllByIndex('photos','trialId',trialId).then(list=>list.sort((a,b)=>a.date.localeCompare(b.date) || a.createdAt-b.createdAt)),
+    renderNotes(trialId),
+    renderEvalHistory(trialId),
+    renderSavedComparisons('detail', trialId),
+  ]);
   if(!t){ go('home'); return; }
-  const c = await idbGet('crops', t.cropId);
   document.getElementById('detailTitle').textContent = trialTitle(t);
   const dateParts = [];
   if(t.sowDate) dateParts.push(['파종일', t.sowDate]);
@@ -351,7 +361,6 @@ async function renderDetail(trialId){
   } else {
     addrListEl.innerHTML = '';
   }
-  const photos = (await idbGetAllByIndex('photos','trialId',trialId)).sort((a,b)=>a.date.localeCompare(b.date) || a.createdAt-b.createdAt);
   allPhotosCache = photos;
 
   // 상단 요약: 정식(없으면 파종) 후 며칠 · 누적 사진 · 마지막 기록
@@ -389,11 +398,6 @@ async function renderDetail(trialId){
   document.getElementById('timelineSubjectTabs').classList.toggle('hidden', !hasReference);
   document.getElementById('timelineSubjectRef').textContent = hasReference ? `대비품종 (${t.referenceVariety})` : '대비품종';
   setTimelineSubject('own');
-
-  await renderNotes(trialId);
-  await renderEvalHistory(trialId);
-  exitSavedCmpSelectMode('detail');
-  await renderSavedComparisons('detail', trialId);
 }
 function renderCompareCountTabs(){
   [2,3,4].forEach(n=>{
