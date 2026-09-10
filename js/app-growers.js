@@ -293,7 +293,7 @@ function openGrowerNoteModal(noteId){
   backdrop.innerHTML = `
     <div class="modal-sheet">
       <h3>${noteId? '메모 수정':'메모 추가'}</h3>
-      <div class="field">
+      <div class="field field-compact-date">
         <label>날짜</label>
         <input type="date" id="growerNoteDate" value="${todayStr()}" oninput="saveGrowerNoteDraft('${noteId||''}')">
       </div>

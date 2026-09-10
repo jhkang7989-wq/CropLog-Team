@@ -252,6 +252,11 @@
     padding:11px 12px;font-size:13.5px;color:var(--ink);font-family:inherit;
   }
   .field textarea{resize:vertical;min-height:60px;}
+  /* 메모 모달의 날짜 — 값이 짧은데 다른 입력칸처럼 꽉 채운 폭이라 위아래로 붕 떠
+     보이고 균형이 안 맞았다. 라벨과 한 줄에 놓고 입력칸은 내용 크기만큼만. */
+  .field-compact-date{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .field-compact-date label{margin-bottom:0;flex:0 0 auto;}
+  .field-compact-date input[type=date]{width:auto;flex:0 0 auto;padding:6px 9px;font-size:12.5px;}
   /* 메모 입력창 — 굵게/밑줄이 타이핑하는 그대로 보여야 해서 textarea가 아니라
      contenteditable이다. 전역 *{user-select:none}에 걸리지 않게 여기서 되돌린다
      (글자를 끌어서 선택할 수 있어야 그 부분만 굵게 만들 수 있음). */
