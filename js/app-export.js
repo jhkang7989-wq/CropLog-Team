@@ -86,13 +86,30 @@ async function processUploadFile(file, rotationDeg){
   return processUploadFileMainThread(file, rotationDeg);
 }
 /* ---- 폴백: 워커/OffscreenCanvas 미지원 브라우저용, 기존 메인 스레드 처리 ---- */
+// 카카오톡 등에서 주고받으며 재압축된 사진은 createImageBitmap이 디코딩을 거부하는
+// 경우가 있는데, <img> 태그는 더 관대하게 읽어내는 경우가 많아 한 번 더 시도해본다.
+function loadImageElement(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('이미지를 읽을 수 없어요')); };
+    img.src = url;
+  });
+}
 async function processUploadFileMainThread(file, rotationDeg){
   rotationDeg = ((rotationDeg||0) % 360 + 360) % 360;
+  let source;
   try{
-    const bitmap = await createImageBitmap(file, {imageOrientation:'from-image'});
+    source = await createImageBitmap(file, {imageOrientation:'from-image'});
+  }catch(e){
+    try{ source = await loadImageElement(file); }catch(e2){ return { blob: file, thumbBlob: null }; }
+  }
+  try{
+    const sw = source.naturalWidth || source.width, sh = source.naturalHeight || source.height;
     const swap = rotationDeg===90 || rotationDeg===270;
     const MAX_FULL = 2000;
-    let fw = bitmap.width, fh = bitmap.height;
+    let fw = sw, fh = sh;
     if(Math.max(fw,fh) > MAX_FULL){
       const scale = MAX_FULL/Math.max(fw,fh);
       fw = Math.round(fw*scale); fh = Math.round(fh*scale);
@@ -103,7 +120,7 @@ async function processUploadFileMainThread(file, rotationDeg){
     const fctx = fullCanvas.getContext('2d');
     fctx.translate(outW/2, outH/2);
     fctx.rotate(rotationDeg*Math.PI/180);
-    fctx.drawImage(bitmap, -fw/2, -fh/2, fw, fh);
+    fctx.drawImage(source, -fw/2, -fh/2, fw, fh);
     const fullBlob = await new Promise(res=> fullCanvas.toBlob(res, 'image/jpeg', 0.88));
 
     const MAX_THUMB = 380;
@@ -114,10 +131,10 @@ async function processUploadFileMainThread(file, rotationDeg){
     thumbCanvas.getContext('2d').drawImage(fullCanvas, 0, 0, tw, th);
     const thumbBlob = await new Promise(res=> thumbCanvas.toBlob(res, 'image/jpeg', 0.75));
 
-    if(bitmap.close) bitmap.close();
+    if(source.close) source.close();
     return { blob: fullBlob || file, thumbBlob: thumbBlob || null };
   }catch(e){
-    // 브라우저가 지원 안 하면 원본 그대로 사용 (회전 보정/썸네일만 생략)
+    // 그래도 안 되면 원본 그대로 사용 (회전 보정/썸네일만 생략)
     return { blob: file, thumbBlob: null };
   }
 }
@@ -150,6 +167,12 @@ async function runUploadSave(){
 
   try{
     let queuedCount = 0;
+    // 사진 하나가 서버에서 거부돼도(형식이 이상하거나 처리 실패한 사진 등) 나머지
+    // 정상 업로드된 사진들까지 화면에 못 보이게 되면 안 되므로, 실패는 여기 모아만
+    // 두고 루프 중간에 던지지 않는다 — 예전엔 여기서 바로 throw해서, 같이 올린
+    // 다른 사진들이 서버엔 이미 올라갔는데도 타임라인 새로고침이 통째로 건너뛰어져
+    // "업로드했는데 사진내역에 안 보인다"는 문제가 생겼었다.
+    const failed = [];
     const processed = await Promise.all(filesToUpload.map((f,i)=>processUploadFile(f, rotationsToUpload[i])));
     const results = await Promise.allSettled(processed.map(({blob, thumbBlob})=>
       uploadPhoto(trialId, {full: blob, thumb: thumbBlob, date, subject})
@@ -158,16 +181,24 @@ async function runUploadSave(){
       if(results[i].status !== 'rejected') continue;
       const err = results[i].reason;
       // 진짜 네트워크 두절(현장 신호 없음)만 큐에 담고, 서버가 거부한 진짜 오류는
-      // 재시도해도 소용없으니 그대로 실패 처리한다.
-      if(!isNetworkError(err)) throw err;
-      await queueOfflineUpload({
-        id: uid(), trialId, subject, date,
-        full: processed[i].blob, thumb: processed[i].thumbBlob, createdAt: Date.now()
-      });
-      queuedCount++;
+      // 재시도해도 소용없으니 실패 목록에 남긴다.
+      if(isNetworkError(err)){
+        await queueOfflineUpload({
+          id: uid(), trialId, subject, date,
+          full: processed[i].blob, thumb: processed[i].thumbBlob, createdAt: Date.now()
+        });
+        queuedCount++;
+      } else {
+        failed.push(err);
+      }
     }
     await touchTrialUpdatedAt(trialId);
-    if(queuedCount > 0){
+    const savedCount = uploadingCount - queuedCount - failed.length;
+    if(failed.length > 0){
+      console.error(failed[0]);
+      const rest = failed.length>1 ? ` 외 ${failed.length-1}장` : '';
+      toast(`${savedCount>0? `${savedCount}장 저장, `:''}${failed.length}장 실패(${(failed[0]&&failed[0].message)||'알 수 없는 오류'}${rest})`);
+    } else if(queuedCount > 0){
       toast(`오프라인이라 사진 ${queuedCount}장을 기기에 저장해뒀어요. 연결되면 자동으로 올라가요.`);
     } else {
       toast(`사진 ${uploadingCount}장 저장됐어요`);

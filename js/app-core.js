@@ -1,5 +1,5 @@
 /* ================= 앱 버전 ================= */
-const APP_VERSION = 84;
+const APP_VERSION = 85;
 document.getElementById('appVersionText').textContent = `CropLog v${APP_VERSION} · 팀 서버 모드`;
 
 /* ================= 서버 API 레이어 =================
@@ -169,7 +169,12 @@ function setLocalMeta(val){
 async function uploadPhoto(trialId, {full, thumb, date, isMarked, originalPhotoId, markNote, subject}){
   const form = new FormData();
   form.append('full', full, 'full.jpg');
-  form.append('thumb', thumb, 'thumb.jpg');
+  // 브라우저가 썸네일을 못 만들었으면(카카오톡 등에서 재압축된 사진이 디코딩을
+  // 거부하는 경우 등) thumb가 null인데, FormData.append(name, null)은 실제
+  // 이미지가 아니라 문자열 "null"이 그대로 들어가버려 서버가 이상한 값을 받게
+  // 된다 — 그럴 땐 원본(full)을 썸네일 대신 그대로 보낸다(용량만 좀 더 클 뿐
+  // 사진 자체는 정상적으로 올라가고 보여야 함).
+  form.append('thumb', thumb || full, 'thumb.jpg');
   form.append('date', date);
   if(isMarked) form.append('isMarked', '1');
   if(originalPhotoId) form.append('originalPhotoId', originalPhotoId);
@@ -180,7 +185,7 @@ async function uploadPhoto(trialId, {full, thumb, date, isMarked, originalPhotoI
 async function rotatePhotoOnServer(photoId, full, thumb){
   const form = new FormData();
   form.append('full', full, 'full.jpg');
-  form.append('thumb', thumb, 'thumb.jpg');
+  form.append('thumb', thumb || full, 'thumb.jpg');
   return apiFetch(`/api/photos/${photoId}`, { method:'PUT', body: form });
 }
 async function fetchPhotoBlob(photoId){
